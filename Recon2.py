@@ -12,6 +12,7 @@ except ImportError:
     HEIF_SUPPORT = False
     st.warning("Для поддержки HEIC/HEIF установите пакет pillow-heif: pip install pillow-heif")
 import shutil
+from io import BytesIO
 
 pillow_heif.register_heif_opener()
 
@@ -54,12 +55,81 @@ def reset_all():
 
 mode = st.radio(
     "Выберите режим работы:",
-    ["Переименование фото", "Конвертация в JPG"],
-    index=0 if st.session_state["mode"] == "Переименование фото" else 1,
+    ["Переименование фото", "Конвертация в JPG", "Водяной знак"],
+    index=0 if st.session_state["mode"] == "Переименование фото" else (1 if st.session_state["mode"] == "Конвертация в JPG" else 2),
     key="mode_radio",
     on_change=lambda: st.session_state.update({"log": [], "result_zip": None, "stats": {}})
 )
 st.session_state["mode"] = mode
+
+# --- UI для режима Водяной знак ---
+if mode == "Водяной знак":
+    st.markdown("**Выберите водяной знак:**")
+    import glob
+    from water import apply_watermark
+    # Папка с предустановленными водяными знаками
+    watermark_dir = os.path.join(os.path.dirname(__file__), "watermarks")
+    preset_files = glob.glob(os.path.join(watermark_dir, "*.png")) if os.path.exists(watermark_dir) else []
+    preset_names = [os.path.basename(f) for f in preset_files]
+    preset_choice = st.selectbox("Предустановленные", ["Нет"] + preset_names)
+    user_wm_file = st.file_uploader("Или загрузите свой PNG-водяной знак", type=["png"], key="user_wm")
+    st.markdown("**Или текстовый водяной знак:**")
+    text_wm = st.text_input("Текст водяного знака", "")
+    col1, col2 = st.columns(2)
+    with col1:
+        text_color = st.color_picker("Цвет текста", "#FFFFFF")
+    with col2:
+        text_size = st.slider("Размер шрифта", 10, 120, 36)
+    # Параметры водяного знака
+    st.markdown("**Параметры водяного знака:**")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        position = st.selectbox("Позиция", [
+            ("Левый верх", "top_left"),
+            ("Правый верх", "top_right"),
+            ("Центр", "center"),
+            ("Левый низ", "bottom_left"),
+            ("Правый низ", "bottom_right")
+        ], format_func=lambda x: x[0])[1]
+    with col2:
+        opacity = st.slider("Прозрачность", 0, 100, 50) / 100.0
+    with col3:
+        scale = st.slider("Масштаб (% от ширины)", 5, 50, 20) / 100.0
+
+    # --- Предпросмотр водяного знака ---
+    st.markdown("**Предпросмотр водяного знака:**")
+    preview_img = None
+    if uploaded_files:
+        try:
+            preview_file = uploaded_files[0]
+            preview_img = Image.open(preview_file)
+        except Exception:
+            preview_img = Image.new("RGB", (400, 300), (200, 200, 200))
+    else:
+        preview_img = Image.new("RGB", (400, 300), (200, 200, 200))
+    wm_path = None
+    wm_bytes = None
+    if preset_choice != "Нет":
+        wm_path = os.path.join(watermark_dir, preset_choice)
+    elif user_wm_file:
+        user_wm_file.seek(0)
+        wm_bytes = BytesIO(user_wm_file.read())
+    text_opts = {
+        "font_size": text_size,
+        "color": tuple(int(text_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (int(255 * opacity),)
+    }
+    try:
+        if wm_path:
+            preview = apply_watermark(preview_img, watermark_path=wm_path, position=position, opacity=opacity, scale=scale)
+        elif wm_bytes:
+            preview = apply_watermark(preview_img, watermark_path=wm_bytes, position=position, opacity=opacity, scale=scale)
+        elif text_wm:
+            preview = apply_watermark(preview_img, text=text_wm, position=position, opacity=opacity, scale=scale, text_options=text_opts)
+        else:
+            preview = preview_img
+        st.image(preview, caption="Предпросмотр", use_column_width=True)
+    except Exception as e:
+        st.warning(f"Ошибка предпросмотра: {e}")
 
 if st.button("🔄 Начать сначала", type="primary"):
     reset_all()
@@ -158,7 +228,7 @@ if uploaded_files and not st.session_state["result_zip"]:
                             "skipped": skipped
                         }
                         st.session_state["log"] = log
-                    else:
+                    elif mode == "Конвертация в JPG":
                         converted_files = []
                         errors = 0
                         progress_bar = st.progress(0, text="Файлы...")
@@ -194,6 +264,60 @@ if uploaded_files and not st.session_state["result_zip"]:
                         else:
                             st.error("Не удалось конвертировать ни одного изображения.")
                             st.session_state["log"] = log
+                    elif mode == "Водяной знак":
+                        log = st.session_state.get("log", []).copy()
+                        processed_files = []
+                        errors = 0
+                        progress_bar = st.progress(0, text="Файлы...")
+                        # Определяем параметры водяного знака
+                        wm_path = None
+                        if preset_choice != "Нет":
+                            wm_path = os.path.join(watermark_dir, preset_choice)
+                        elif user_wm_file:
+                            tmp_wm = os.path.join(temp_dir, user_wm_file.name)
+                            with open(tmp_wm, "wb") as f:
+                                f.write(user_wm_file.read())
+                            wm_path = tmp_wm
+                        text_opts = {
+                            "font_size": text_size,
+                            "color": tuple(int(text_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (int(255 * opacity),)
+                        }
+                        for i, img_path in enumerate(all_images, 1):
+                            rel_path = img_path.relative_to(temp_dir)
+                            out_path = os.path.join(temp_dir, str(rel_path.with_suffix('.jpg')))
+                            out_dir = os.path.dirname(out_path)
+                            os.makedirs(out_dir, exist_ok=True)
+                            try:
+                                img = Image.open(img_path)
+                                if wm_path:
+                                    result = apply_watermark(img, watermark_path=wm_path, position=position, opacity=opacity, scale=scale)
+                                elif text_wm:
+                                    result = apply_watermark(img, text=text_wm, position=position, opacity=opacity, scale=scale, text_options=text_opts)
+                                else:
+                                    raise ValueError("Не выбран водяной знак")
+                                result.save(out_path, "JPEG", quality=100, optimize=True, progressive=True)
+                                processed_files.append((out_path, rel_path.with_suffix('.jpg')))
+                                log.append(f"✅ {rel_path} → {rel_path.with_suffix('.jpg')}")
+                            except Exception as e:
+                                log.append(f"❌ {rel_path}: ошибка водяного знака ({e})")
+                                errors += 1
+                            progress_bar.progress(i / len(all_images), text=f"Обработано файлов: {i}/{len(all_images)}")
+                        if processed_files:
+                            result_zip = os.path.join(temp_dir, "result_watermark.zip")
+                            with zipfile.ZipFile(result_zip, "w") as zipf:
+                                for src, rel in processed_files:
+                                    zipf.write(src, arcname=rel)
+                            with open(result_zip, "rb") as f:
+                                st.session_state["result_zip"] = f.read()
+                            st.session_state["stats"] = {
+                                "total": len(all_images),
+                                "processed": len(processed_files),
+                                "errors": errors
+                            }
+                            st.session_state["log"] = log
+                        else:
+                            st.error("Не удалось обработать ни одного изображения.")
+                            st.session_state["log"] = log
 
 if st.session_state["result_zip"]:
     stats = st.session_state["stats"]
@@ -206,12 +330,20 @@ if st.session_state["result_zip"]:
             file_name="renamed_photos.zip",
             mime="application/zip"
         )
-    else:
+    elif mode == "Конвертация в JPG":
         st.success(f"Готово! Конвертировано: {stats.get('converted', 0)} из {stats.get('total', 0)} файлов. Ошибок: {stats.get('errors', 0)}")
         st.download_button(
             label="📥 Скачать архив с JPG",
             data=st.session_state["result_zip"],
             file_name="converted_images.zip",
+            mime="application/zip"
+        )
+    elif mode == "Водяной знак":
+        st.success(f"Готово! Обработано: {stats.get('processed', 0)} из {stats.get('total', 0)} файлов. Ошибок: {stats.get('errors', 0)}")
+        st.download_button(
+            label="📥 Скачать архив с водяными знаками",
+            data=st.session_state["result_zip"],
+            file_name="watermarked_images.zip",
             mime="application/zip"
         )
     with st.expander("Показать лог обработки"):
