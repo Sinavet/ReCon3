@@ -1,6 +1,7 @@
 from PIL import Image, ImageDraw, ImageFont
 import os
 from typing import Tuple, Optional
+from io import BytesIO
 
 def apply_watermark(
     base_image: Image.Image,
@@ -14,7 +15,7 @@ def apply_watermark(
     """
     Накладывает водяной знак (PNG или текст) на изображение.
     :param base_image: Исходное изображение (PIL.Image)
-    :param watermark_path: Путь к PNG-водяном знаку (или None)
+    :param watermark_path: Путь к PNG-водяном знаку (или BytesIO, или None)
     :param text: Текст для текстового водяного знака (или None)
     :param position: Позиция ('top_left', 'top_right', 'center', 'bottom_left', 'bottom_right')
     :param opacity: Прозрачность (0.0-1.0)
@@ -26,7 +27,11 @@ def apply_watermark(
     img = base_image.convert("RGBA")
     wm = None
     if watermark_path:
-        wm = Image.open(watermark_path).convert("RGBA")
+        # Поддержка BytesIO
+        if isinstance(watermark_path, BytesIO):
+            wm = Image.open(watermark_path).convert("RGBA")
+        else:
+            wm = Image.open(watermark_path).convert("RGBA")
         # Масштабирование
         wm_width = int(img.width * scale)
         wm_ratio = wm_width / wm.width
@@ -34,13 +39,18 @@ def apply_watermark(
         wm = wm.resize((wm_width, wm_height), Image.Resampling.LANCZOS)
         # Применение прозрачности
         if opacity < 1.0:
-            alpha = wm.split()[3].point(lambda p: int(p * opacity))
+            alpha = wm.getchannel("A").point(lambda p: int(p * opacity))
             wm.putalpha(alpha)
     elif text:
         opts = text_options or {}
         font_path = opts.get("font_path", None)
         font_size = opts.get("font_size", 36)
-        color = opts.get("color", (255, 255, 255, int(255 * opacity)))
+        # Альфа-канал цвета для прозрачности
+        base_color = opts.get("color", (255, 255, 255))
+        if len(base_color) == 3:
+            color = base_color + (int(255 * opacity),)
+        else:
+            color = base_color[:3] + (int(255 * opacity),)
         if font_path and os.path.exists(font_path):
             font = ImageFont.truetype(font_path, font_size)
         else:
