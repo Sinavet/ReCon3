@@ -287,7 +287,7 @@ if uploaded_files and not st.session_state["result_zip"]:
                             log.append("❌ Не выбран ни один водяной знак для обработки.")
                             st.session_state["log"] = log
                             st.session_state["stats"] = {"total": len(all_images), "processed": 0, "errors": len(all_images)}
-                            return
+                            st.stop()
                         text_opts = {
                             "font_size": text_size,
                             "color": tuple(int(text_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (int(255 * opacity),)
