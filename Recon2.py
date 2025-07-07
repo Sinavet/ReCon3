@@ -82,7 +82,9 @@ if mode == "Водяной знак":
     import glob
     from water import apply_watermark
     # Папка с предустановленными водяными знаками
-    watermark_dir = os.path.join(os.path.dirname(__file__), "watermarks")
+    watermark_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "watermarks"))
+    st.write("Текущая рабочая директория:", os.getcwd())
+    st.write("Содержимое watermarks:", os.listdir(watermark_dir) if os.path.exists(watermark_dir) else "Папка не найдена")
     preset_files = glob.glob(os.path.join(watermark_dir, "*.png")) if os.path.exists(watermark_dir) else []
     preset_names = [os.path.basename(f) for f in preset_files]
     preset_choice = st.selectbox("Предустановленные", ["Нет"] + preset_names)
@@ -287,10 +289,24 @@ if uploaded_files and not st.session_state["result_zip"]:
                             os.makedirs(out_dir, exist_ok=True)
                             try:
                                 img = Image.open(img_path)
+                                # Диагностика для предустановленного PNG
                                 if wm_path:
+                                    if not os.path.exists(wm_path):
+                                        log.append(f"❌ {rel_path}: файл водяного знака не найден: {wm_path}")
+                                        raise FileNotFoundError(f"Водяной знак не найден: {wm_path}")
+                                    elif os.path.getsize(wm_path) == 0:
+                                        log.append(f"❌ {rel_path}: файл водяного знака пустой: {wm_path}")
+                                        raise ValueError(f"Водяной знак пустой: {wm_path}")
+                                    else:
+                                        try:
+                                            with Image.open(wm_path) as test_img:
+                                                test_img.verify()
+                                        except Exception as e:
+                                            log.append(f"❌ {rel_path}: не удалось открыть водяной знак {wm_path}: {e}")
+                                            raise
                                     result = apply_watermark(img, watermark_path=wm_path, position=position, opacity=opacity, scale=scale)
-                                elif wm_bytes:
-                                    result = apply_watermark(img, watermark_path=wm_bytes, position=position, opacity=opacity, scale=scale)
+                                elif user_wm_bytes:
+                                    result = apply_watermark(img, watermark_path=BytesIO(user_wm_bytes), position=position, opacity=opacity, scale=scale)
                                 elif text_wm:
                                     result = apply_watermark(img, text=text_wm, position=position, opacity=opacity, scale=scale, text_options=text_opts)
                                 else:
