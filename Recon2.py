@@ -62,6 +62,20 @@ mode = st.radio(
 )
 st.session_state["mode"] = mode
 
+st.markdown(
+    """
+    <span style='color:#888;'>Перетащите файлы или архив на область ниже или нажмите для выбора вручную</span>
+    """,
+    unsafe_allow_html=True
+)
+
+uploaded_files = st.file_uploader(
+    "Загрузите изображения или архив (до 1 ГБ, поддерживаются JPG, PNG, HEIC, ZIP и др.)",
+    type=["jpg", "jpeg", "png", "bmp", "webp", "tiff", "heic", "heif", "zip"],
+    accept_multiple_files=True,
+    key=st.session_state["reset_uploader"]
+)
+
 # --- UI для режима Водяной знак ---
 if mode == "Водяной знак":
     st.markdown("**Выберите водяной знак:**")
@@ -137,21 +151,6 @@ if st.button("🔄 Начать сначала", type="primary"):
 
 MAX_SIZE_MB = 1000
 MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
-
-# Вместо кастомного drag-and-drop блока добавляем поясняющий текст
-st.markdown(
-    """
-    <span style='color:#888;'>Перетащите файлы или архив на область ниже или нажмите для выбора вручную</span>
-    """,
-    unsafe_allow_html=True
-)
-
-uploaded_files = st.file_uploader(
-    "Загрузите изображения или архив (до 1 ГБ, поддерживаются JPG, PNG, HEIC, ZIP и др.)",
-    type=["jpg", "jpeg", "png", "bmp", "webp", "tiff", "heic", "heif", "zip"],
-    accept_multiple_files=True,
-    key=st.session_state["reset_uploader"]
-)
 
 if uploaded_files and not st.session_state["result_zip"]:
     # Проверка размера файлов
