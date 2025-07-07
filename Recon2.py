@@ -274,10 +274,20 @@ if uploaded_files and not st.session_state["result_zip"]:
                         progress_bar = st.progress(0, text="Файлы...")
                         # Определяем параметры водяного знака
                         wm_path = None
+                        wm_bytes = None
+                        no_watermark = False
                         if preset_choice != "Нет":
                             wm_path = os.path.join(watermark_dir, preset_choice)
                         elif user_wm_bytes:
                             wm_bytes = BytesIO(user_wm_bytes)
+                        elif text_wm:
+                            pass  # текстовый вотермарк
+                        else:
+                            st.error("Выберите или загрузите водяной знак, либо введите текст!")
+                            log.append("❌ Не выбран ни один водяной знак для обработки.")
+                            st.session_state["log"] = log
+                            st.session_state["stats"] = {"total": len(all_images), "processed": 0, "errors": len(all_images)}
+                            return
                         text_opts = {
                             "font_size": text_size,
                             "color": tuple(int(text_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (int(255 * opacity),)
@@ -293,24 +303,29 @@ if uploaded_files and not st.session_state["result_zip"]:
                                 if wm_path:
                                     if not os.path.exists(wm_path):
                                         log.append(f"❌ {rel_path}: файл водяного знака не найден: {wm_path}")
-                                        raise FileNotFoundError(f"Водяной знак не найден: {wm_path}")
+                                        errors += 1
+                                        continue
                                     elif os.path.getsize(wm_path) == 0:
                                         log.append(f"❌ {rel_path}: файл водяного знака пустой: {wm_path}")
-                                        raise ValueError(f"Водяной знак пустой: {wm_path}")
+                                        errors += 1
+                                        continue
                                     else:
                                         try:
                                             with Image.open(wm_path) as test_img:
                                                 test_img.verify()
                                         except Exception as e:
                                             log.append(f"❌ {rel_path}: не удалось открыть водяной знак {wm_path}: {e}")
-                                            raise
+                                            errors += 1
+                                            continue
                                     result = apply_watermark(img, watermark_path=wm_path, position=position, opacity=opacity, scale=scale)
                                 elif user_wm_bytes:
                                     result = apply_watermark(img, watermark_path=BytesIO(user_wm_bytes), position=position, opacity=opacity, scale=scale)
                                 elif text_wm:
                                     result = apply_watermark(img, text=text_wm, position=position, opacity=opacity, scale=scale, text_options=text_opts)
                                 else:
-                                    raise ValueError("Не выбран водяной знак")
+                                    log.append(f"❌ {rel_path}: не выбран водяной знак")
+                                    errors += 1
+                                    continue
                                 result = result.convert("RGB")  # Гарантируем RGB для JPEG
                                 result.save(out_path, "JPEG", quality=100, optimize=True, progressive=True)
                                 processed_files.append((out_path, rel_path.with_suffix('.jpg')))
