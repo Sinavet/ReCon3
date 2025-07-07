@@ -290,10 +290,13 @@ if uploaded_files and not st.session_state["result_zip"]:
                                 img = Image.open(img_path)
                                 if wm_path:
                                     result = apply_watermark(img, watermark_path=wm_path, position=position, opacity=opacity, scale=scale)
+                                elif wm_bytes:
+                                    result = apply_watermark(img, watermark_path=wm_bytes, position=position, opacity=opacity, scale=scale)
                                 elif text_wm:
                                     result = apply_watermark(img, text=text_wm, position=position, opacity=opacity, scale=scale, text_options=text_opts)
                                 else:
                                     raise ValueError("Не выбран водяной знак")
+                                result = result.convert("RGB")  # Гарантируем RGB для JPEG
                                 result.save(out_path, "JPEG", quality=100, optimize=True, progressive=True)
                                 processed_files.append((out_path, rel_path.with_suffix('.jpg')))
                                 log.append(f"✅ {rel_path} → {rel_path.with_suffix('.jpg')}")
@@ -317,6 +320,7 @@ if uploaded_files and not st.session_state["result_zip"]:
                         else:
                             st.error("Не удалось обработать ни одного изображения.")
                             st.session_state["log"] = log
+                            st.write(log)  # Выводим лог для отладки
 
 if st.session_state["result_zip"]:
     stats = st.session_state["stats"]
