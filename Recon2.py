@@ -68,14 +68,10 @@ if st.button("🔄 Начать сначала", type="primary"):
 MAX_SIZE_MB = 200
 MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 
-# Кастомный drag-and-drop блок-инструкция
+# Вместо кастомного drag-and-drop блока добавляем поясняющий текст
 st.markdown(
     """
-    <div style='border: 2px dashed #4A90E2; border-radius: 10px; padding: 20px; text-align: center; background-color: #f7fafd; margin-bottom: 10px;'>
-        <span style='font-size:2em;'>⬇️</span><br>
-        <b>Перетащите файлы или архив сюда</b><br>
-        <span style='color: #888;'>или нажмите для выбора вручную</span>
-    </div>
+    <span style='color:#888;'>Перетащите файлы или архив на область ниже или нажмите для выбора вручную</span>
     """,
     unsafe_allow_html=True
 )
