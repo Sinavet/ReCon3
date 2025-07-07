@@ -68,10 +68,6 @@ if st.button("🔄 Начать сначала", type="primary"):
 MAX_SIZE_MB = 200
 MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 
-rename_all = False
-if mode == "Переименование фото":
-    rename_all = st.checkbox("Переименовывать все фото в папке (1.jpg, 2.jpg, ...)", value=False)
-
 # Кастомный drag-and-drop блок-инструкция
 st.markdown(
     """
@@ -135,7 +131,7 @@ if uploaded_files and not st.session_state["result_zip"]:
                         for i, folder in enumerate(folders):
                             photos = [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in exts]
                             relative_folder_path = folder.relative_to(temp_dir)
-                            if rename_all and len(photos) > 0:
+                            if len(photos) > 0:
                                 for idx, photo in enumerate(sorted(photos), 1):
                                     new_name = f"{idx}{photo.suffix.lower()}"
                                     new_path = photo.parent / new_name
@@ -148,22 +144,6 @@ if uploaded_files and not st.session_state["result_zip"]:
                                         photo.rename(new_path)
                                         log.append(f"Переименовано: '{relative_photo_path}' -> '{relative_new_path}'")
                                         renamed += 1
-                            elif len(photos) == 1:
-                                photo = photos[0]
-                                new_name = f"1{photo.suffix.lower()}"
-                                new_path = photo.parent / new_name
-                                relative_photo_path = photo.relative_to(temp_dir)
-                                relative_new_path = new_path.relative_to(temp_dir)
-                                if new_path.exists():
-                                    log.append(f"Пропущено: Файл '{relative_new_path}' уже существует.")
-                                    skipped += 1
-                                else:
-                                    photo.rename(new_path)
-                                    log.append(f"Переименовано: '{relative_photo_path}' -> '{relative_new_path}'")
-                                    renamed += 1
-                            elif len(photos) > 1:
-                                log.append(f"Пропущено: В папке '{relative_folder_path}' несколько фото.")
-                                skipped += len(photos)
                             else:
                                 log.append(f"Инфо: В папке '{relative_folder_path}' нет фото.")
                                 skipped += 1
