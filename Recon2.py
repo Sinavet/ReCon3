@@ -184,8 +184,12 @@ if uploaded_files and not st.session_state["result_zip"]:
                         img_temp = os.path.join(temp_dir, uploaded.name)
                         with open(img_temp, "wb") as f:
                             f.write(uploaded.read())
+                        # Проверка размера файла после копирования
+                        if os.path.getsize(img_temp) == 0:
+                            log.append(f"❌ {uploaded.name}: файл скопирован с нулевым размером!")
+                        else:
+                            log.append(f"🖼️ Файл {uploaded.name}: добавлен, размер: {os.path.getsize(img_temp)} байт.")
                         all_images.append(Path(img_temp))
-                        log.append(f"🖼️ Файл {uploaded.name}: добавлен.")
                     else:
                         log.append(f"❌ {uploaded.name}: не поддерживается.")
                 if not all_images:
@@ -301,6 +305,12 @@ if uploaded_files and not st.session_state["result_zip"]:
                                 img = Image.open(img_path)
                                 # Диагностика для предустановленного PNG
                                 if wm_path:
+                                    # Проверка регистра имени файла
+                                    actual_files = os.listdir(os.path.dirname(wm_path))
+                                    if os.path.basename(wm_path) not in actual_files:
+                                        log.append(f"❌ {rel_path}: файл водяного знака {wm_path} не найден (проверь регистр имени)")
+                                        errors += 1
+                                        continue
                                     if not os.path.exists(wm_path):
                                         log.append(f"❌ {rel_path}: файл водяного знака не найден: {wm_path}")
                                         errors += 1
@@ -310,6 +320,7 @@ if uploaded_files and not st.session_state["result_zip"]:
                                         errors += 1
                                         continue
                                     else:
+                                        log.append(f"✅ Водяной знак найден: {wm_path}, размер: {os.path.getsize(wm_path)} байт")
                                         try:
                                             with Image.open(wm_path) as test_img:
                                                 test_img.verify()
