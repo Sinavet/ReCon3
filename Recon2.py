@@ -65,7 +65,7 @@ if st.button("🔄 Начать сначала", type="primary"):
     reset_all()
     st.rerun()
 
-MAX_SIZE_MB = 200
+MAX_SIZE_MB = 1000
 MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 
 # Вместо кастомного drag-and-drop блока добавляем поясняющий текст
