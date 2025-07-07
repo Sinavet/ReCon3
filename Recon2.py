@@ -17,8 +17,8 @@ pillow_heif.register_heif_opener()
 
 SUPPORTED_EXTS = ('.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff', '.heic', '.heif')
 
-st.set_page_config(page_title="Фото-бот: Переименование и конвертация", page_icon="🖼️")
-st.title("🖼️ Фото-бот: Переименование и конвертация")
+st.set_page_config(page_title="PhotoFlow: Умная обработка изображений")
+st.title("PhotoFlow: Умная обработка изображений")
 
 with st.expander("ℹ️ Инструкция и ответы на вопросы"):
     st.markdown("""
@@ -77,7 +77,7 @@ st.markdown(
 )
 
 uploaded_files = st.file_uploader(
-    "Загрузите изображения или zip-архив (до 200 МБ)",
+    "Загрузите изображения или архив (до 1 ГБ, поддерживаются JPG, PNG, HEIC, ZIP и др.)",
     type=["jpg", "jpeg", "png", "bmp", "webp", "tiff", "heic", "heif", "zip"],
     accept_multiple_files=True,
     key=st.session_state["reset_uploader"]
