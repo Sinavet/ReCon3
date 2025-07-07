@@ -87,6 +87,9 @@ if mode == "Водяной знак":
     preset_names = [os.path.basename(f) for f in preset_files]
     preset_choice = st.selectbox("Предустановленные", ["Нет"] + preset_names)
     user_wm_file = st.file_uploader("Или загрузите свой PNG-водяной знак", type=["png"], key="user_wm")
+    user_wm_bytes = None
+    if user_wm_file is not None:
+        user_wm_bytes = user_wm_file.read()
     st.markdown("**Или текстовый водяной знак:**")
     text_wm = st.text_input("Текст водяного знака", "")
     col1, col2 = st.columns(2)
@@ -125,9 +128,8 @@ if mode == "Водяной знак":
     wm_bytes = None
     if preset_choice != "Нет":
         wm_path = os.path.join(watermark_dir, preset_choice)
-    elif user_wm_file:
-        user_wm_file.seek(0)
-        wm_bytes = BytesIO(user_wm_file.read())
+    elif user_wm_bytes:
+        wm_bytes = BytesIO(user_wm_bytes)
     text_opts = {
         "font_size": text_size,
         "color": tuple(int(text_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (int(255 * opacity),)
@@ -272,11 +274,8 @@ if uploaded_files and not st.session_state["result_zip"]:
                         wm_path = None
                         if preset_choice != "Нет":
                             wm_path = os.path.join(watermark_dir, preset_choice)
-                        elif user_wm_file:
-                            tmp_wm = os.path.join(temp_dir, user_wm_file.name)
-                            with open(tmp_wm, "wb") as f:
-                                f.write(user_wm_file.read())
-                            wm_path = tmp_wm
+                        elif user_wm_bytes:
+                            wm_bytes = BytesIO(user_wm_bytes)
                         text_opts = {
                             "font_size": text_size,
                             "color": tuple(int(text_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (int(255 * opacity),)
