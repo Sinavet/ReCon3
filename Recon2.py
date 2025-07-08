@@ -13,6 +13,7 @@ except ImportError:
     st.warning("Для поддержки HEIC/HEIF установите пакет pillow-heif: pip install pillow-heif")
 import shutil
 from io import BytesIO
+import yadisk
 import pickle
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
