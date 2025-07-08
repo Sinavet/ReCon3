@@ -14,6 +14,7 @@ except ImportError:
 import shutil
 from io import BytesIO
 import requests
+import uuid
 
 pillow_heif.register_heif_opener()
 
@@ -178,21 +179,24 @@ if uploaded_files and not st.session_state["result_zip"]:
                         log.append(f"❌ {uploaded.name}: превышает лимит {MAX_SIZE_MB} МБ.")
                         continue
                     file_bytes = uploaded.read()
+                    ext = os.path.splitext(uploaded.name)[1]
+                    safe_name = f"img_{uuid.uuid4().hex}{ext}"
                     if uploaded.name.lower().endswith(".zip"):
-                        zip_temp = os.path.join(temp_dir, uploaded.name)
+                        zip_temp = os.path.join(temp_dir, safe_name)
                         with open(zip_temp, "wb") as f:
                             f.write(file_bytes)
+                        log.append(f"📦 Архив {uploaded.name} сохранён как {safe_name}, размер: {os.path.getsize(zip_temp)} байт.")
                         with zipfile.ZipFile(zip_temp, "r") as zip_ref:
                             zip_ref.extractall(temp_dir)
                         extracted = [file for file in Path(temp_dir).rglob("*") if file.is_file() and file.suffix.lower() in SUPPORTED_EXTS]
                         log.append(f"📦 Архив {uploaded.name}: найдено {len(extracted)} изображений.")
                         all_images.extend(extracted)
                     elif uploaded.name.lower().endswith(SUPPORTED_EXTS):
-                        img_temp = os.path.join(temp_dir, uploaded.name)
+                        img_temp = os.path.join(temp_dir, safe_name)
                         with open(img_temp, "wb") as f:
                             f.write(file_bytes)
                         file_size = os.path.getsize(img_temp)
-                        log.append(f"🖼️ Файл {uploaded.name}: добавлен, размер: {file_size} байт.")
+                        log.append(f"🖼️ Файл {uploaded.name} сохранён как {safe_name}, размер: {file_size} байт, путь: {img_temp}")
                         if file_size == 0:
                             log.append(f"❌ {uploaded.name}: файл скопирован с нулевым размером!")
                         else:
