@@ -196,23 +196,21 @@ if mode == "Переименование фото" and uploaded_files:
                 progress_bar = st.progress(0, text="Папки...")
                 for i, folder in enumerate(folders):
                     photos = [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in exts]
+                    photos_sorted = sorted(photos, key=lambda x: x.name)
                     relative_folder_path = folder.relative_to(temp_dir)
-                    if len(photos) == 1:
-                        photo = photos[0]
-                        new_name = f"1{photo.suffix.lower()}"
-                        new_path = photo.parent / new_name
-                        relative_photo_path = photo.relative_to(temp_dir)
-                        relative_new_path = new_path.relative_to(temp_dir)
-                        if new_path.exists():
-                            log.append(f"Пропущено: Файл '{relative_new_path}' уже существует.")
-                            skipped += 1
-                        else:
-                            photo.rename(new_path)
-                            log.append(f"Переименовано: '{relative_photo_path}' -> '{relative_new_path}'")
-                            renamed += 1
-                    elif len(photos) > 1:
-                        log.append(f"Пропущено: В папке '{relative_folder_path}' несколько фото.")
-                        skipped += len(photos)
+                    if len(photos_sorted) > 0:
+                        for idx, photo in enumerate(photos_sorted, 1):
+                            new_name = f"{idx}{photo.suffix.lower()}"
+                            new_path = photo.parent / new_name
+                            relative_photo_path = photo.relative_to(temp_dir)
+                            relative_new_path = new_path.relative_to(temp_dir)
+                            if new_path.exists() and new_path != photo:
+                                log.append(f"Пропущено: Файл '{relative_new_path}' уже существует.")
+                                skipped += 1
+                            else:
+                                photo.rename(new_path)
+                                log.append(f"Переименовано: '{relative_photo_path}' -> '{relative_new_path}'")
+                                renamed += 1
                     else:
                         log.append(f"Инфо: В папке '{relative_folder_path}' нет фото.")
                         skipped += 1
