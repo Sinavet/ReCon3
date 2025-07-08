@@ -66,6 +66,7 @@ st.session_state["mode"] = mode
 st.markdown(
     """
     <span style='color:#888;'>Перетащите файлы или архив на область ниже или нажмите для выбора вручную</span>
+    <br><span style='color:#d9534f; font-weight:bold;'>Внимание: загружайте только файлы до 300 МБ!</span>
     """,
     unsafe_allow_html=True
 )
@@ -406,22 +407,6 @@ if st.session_state["result_zip"]:
         f.write(st.session_state["result_zip"])
     file_size_mb = os.path.getsize(result_path) / (1024 * 1024)
     st.success(msg)
-    # --- Кнопка загрузки на TransferNow ---
-    # if st.button("Загрузить на TransferNow"):
-    #     with st.spinner("Загрузка на TransferNow..."):
-    #         try:
-    #             public_url = upload_to_transfernow(result_path)
-    #             if public_url:
-    #                 st.success(f"Файл загружен! [Скачать с TransferNow]({public_url})")
-    #             else:
-    #                 st.error("Ошибка загрузки на TransferNow")
-    #         except Exception as e:
-    #             st.error(f"Ошибка загрузки на TransferNow: {e}")
-    # --- Скачивание локально ---
-    # if file_size_mb > 100:
-    #     st.markdown(f"[📥 Скачать архив]({result_path}) (через статическую ссылку, {file_size_mb:.1f} МБ)")
-    #     st.info("Если скачивание не начинается, скопируйте ссылку и откройте в новой вкладке. Для больших файлов download_button не используется.")
-    # else:
     with open(result_path, "rb") as f:
         st.download_button(
             label="📥 Скачать архив",
