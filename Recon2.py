@@ -14,6 +14,35 @@ except ImportError:
 import shutil
 from io import BytesIO
 import yadisk
+import pickle
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+
+def get_gdrive_service():
+    creds = None
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+    return build('drive', 'v3', credentials=creds)
+
+def upload_to_gdrive(local_path, filename=None):
+    service = get_gdrive_service()
+    file_metadata = {'name': filename or os.path.basename(local_path)}
+    media = MediaFileUpload(local_path, resumable=True)
+    file = service.files().create(body=file_metadata, media_body=media, fields='id,webViewLink,webContentLink').execute()
+    return file.get('webViewLink'), file.get('webContentLink')
 
 pillow_heif.register_heif_opener()
 
@@ -410,6 +439,13 @@ if st.session_state["result_zip"]:
                 st.error(f"Ошибка загрузки на Яндекс.Диск: {e}")
     else:
         st.info("Для загрузки на Яндекс.Диск задайте YANDEX_TOKEN в secrets или переменных окружения.")
+    # --- Кнопка загрузки на Google Drive ---
+    if st.button("Загрузить на Google Drive"):
+        try:
+            view_link, download_link = upload_to_gdrive(result_path)
+            st.success(f"Файл загружен! [Открыть в Google Drive]({view_link})  \n[Скачать напрямую]({download_link})")
+        except Exception as e:
+            st.error(f"Ошибка загрузки на Google Drive: {e}")
     # --- Скачивание локально ---
     if file_size_mb > 100:
         st.markdown(f"[📥 Скачать архив]({result_path}) (через статическую ссылку, {file_size_mb:.1f} МБ)")
