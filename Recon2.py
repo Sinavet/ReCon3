@@ -298,6 +298,83 @@ elif mode == "Конвертация в JPG" and uploaded_files:
                     st.error("Не удалось конвертировать ни одного изображения.")
                     st.session_state["log"] = log
 
+# --- Кнопка обработки для режима Водяной знак ---
+if mode == "Водяной знак":
+    if uploaded_files and (preset_choice != "Нет" or user_wm_file):
+        if st.button("Обработать и скачать архив", key="process_archive_btn"):
+            import tempfile
+            from pathlib import Path
+            st.subheader('Обработка изображений...')
+            with tempfile.TemporaryDirectory() as temp_dir:
+                all_images = []
+                log = []
+                # --- Сбор всех файлов ---
+                for uploaded in uploaded_files:
+                    if uploaded.name.lower().endswith(".zip"):
+                        zip_temp = os.path.join(temp_dir, uploaded.name)
+                        with open(zip_temp, "wb") as f:
+                            f.write(uploaded.read())
+                        with zipfile.ZipFile(zip_temp, "r") as zip_ref:
+                            zip_ref.extractall(temp_dir)
+                        extracted = [file for file in Path(temp_dir).rglob("*") if file.is_file() and file.suffix.lower() in SUPPORTED_EXTS]
+                        log.append(f"📦 Архив {uploaded.name}: найдено {len(extracted)} изображений.")
+                        all_images.extend(extracted)
+                    elif uploaded.name.lower().endswith(SUPPORTED_EXTS):
+                        img_temp = os.path.join(temp_dir, uploaded.name)
+                        with open(img_temp, "wb") as f:
+                            f.write(uploaded.read())
+                        all_images.append(Path(img_temp))
+                        log.append(f"🖼️ Файл {uploaded.name}: добавлен.")
+                    else:
+                        log.append(f"❌ {uploaded.name}: не поддерживается.")
+                if not all_images:
+                    st.error("Не найдено ни одного поддерживаемого изображения.")
+                else:
+                    watermark_path = None
+                    if preset_choice != "Нет":
+                        watermark_path = os.path.join(watermark_dir, preset_choice)
+                    elif user_wm_file:
+                        watermark_path = user_wm_path
+
+                    if watermark_path:
+                        processed_files = []
+                        errors = 0
+                        progress_bar = st.progress(0, text="Файлы...")
+                        for i, img_path in enumerate(all_images, 1):
+                            rel_path = img_path.relative_to(temp_dir)
+                            out_path = os.path.join(temp_dir, str(rel_path.with_suffix('.jpg')))
+                            out_dir = os.path.dirname(out_path)
+                            os.makedirs(out_dir, exist_ok=True)
+                            try:
+                                img = Image.open(img_path)
+                                processed_img = apply_watermark(img, watermark_path=watermark_path, position=pos_map[position], opacity=opacity, scale=size_percent/100.0)
+                                processed_img.save(out_path, "JPEG", quality=100, optimize=True, progressive=True)
+                                processed_files.append((out_path, rel_path.with_suffix('.jpg')))
+                                log.append(f"✅ {rel_path} → {rel_path.with_suffix('.jpg')}")
+                            except Exception as e:
+                                log.append(f"❌ {rel_path}: ошибка обработки водяного знака ({e})")
+                                errors += 1
+                            progress_bar.progress(i / len(all_images), text=f"Обработано файлов: {i}/{len(all_images)}")
+                        if processed_files:
+                            result_zip = os.path.join(temp_dir, "result_watermark.zip")
+                            with zipfile.ZipFile(result_zip, "w") as zipf:
+                                for src, rel in processed_files:
+                                    zipf.write(src, arcname=rel)
+                            with open(result_zip, "rb") as f:
+                                st.session_state["result_zip"] = f.read()
+                            st.session_state["stats"] = {
+                                "total": len(all_images),
+                                "processed": len(processed_files),
+                                "errors": errors
+                            }
+                            st.session_state["log"] = log
+                        else:
+                            st.error("Не удалось применить водяной знак к ни одному изображению.")
+                            st.session_state["log"] = log
+                    else:
+                        st.warning("Не выбран водяной знак для обработки.")
+                        st.session_state["log"] = log
+
 if st.button("🔄 Начать сначала", type="primary"):
     reset_all()
     st.rerun()
