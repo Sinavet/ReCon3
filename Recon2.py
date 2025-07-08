@@ -14,7 +14,7 @@ except ImportError:
 import shutil
 from io import BytesIO
 import requests
-import imghdr
+# import imghdr  # Удалено, больше не используется
 
 pillow_heif.register_heif_opener()
 
@@ -313,17 +313,17 @@ if uploaded_files and not st.session_state["result_zip"]:
                             out_dir = os.path.dirname(out_path)
                             os.makedirs(out_dir, exist_ok=True)
                             try:
-                                if not os.path.exists(img_path):
-                                    log.append(f"❌ {img_path}: файл не найден!")
-                                elif os.path.getsize(img_path) == 0:
-                                    log.append(f"❌ {img_path}: файл пустой!")
-                                elif imghdr.what(img_path) != 'png' and img_path.lower().endswith('.png'):
-                                    log.append(f"❌ {img_path}: файл не распознан как PNG!")
-                                else:
+                                # Проверяем, что файл действительно изображение через Pillow
+                                try:
                                     img = Image.open(img_path)
+                                    img.verify()  # Проверяет валидность изображения
+                                    img = Image.open(img_path)  # Открываем заново для работы
+                                except Exception as e:
+                                    log.append(f"❌ {img_path}: ошибка открытия изображения ({e})")
+                                    errors += 1
+                                    continue
                                 # Диагностика для предустановленного PNG
                                 if wm_path:
-                                    # Проверка регистра имени файла
                                     actual_files = os.listdir(os.path.dirname(wm_path))
                                     if os.path.basename(wm_path) not in actual_files:
                                         log.append(f"❌ {rel_path}: файл водяного знака {wm_path} не найден (проверь регистр имени)")
