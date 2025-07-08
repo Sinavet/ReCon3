@@ -148,12 +148,6 @@ if st.button("🔄 Начать сначала", type="primary"):
 MAX_SIZE_MB = 3072
 MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 
-# Удаляю автоматическую обработку файлов в режиме 'Водяной знак'
-# Было:
-# if uploaded_files and mode == "Водяной знак" and not st.session_state["result_zip"]:
-#     ...
-# Теперь обработка только по кнопке ниже
-
 if uploaded_files and not st.session_state["result_zip"]:
     # Проверка размера файлов
     oversize = [f for f in uploaded_files if hasattr(f, 'size') and f.size > MAX_SIZE_BYTES]
