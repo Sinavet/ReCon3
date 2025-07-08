@@ -66,13 +66,12 @@ st.session_state["mode"] = mode
 st.markdown(
     """
     <span style='color:#888;'>Перетащите файлы или архив на область ниже или нажмите для выбора вручную</span>
-    <br><span style='color:#d9534f; font-weight:bold;'>Внимание: загружайте только файлы до 300 МБ!</span>
     """,
     unsafe_allow_html=True
 )
 
 uploaded_files = st.file_uploader(
-    "Загрузите изображения или архив (до 1 ГБ, поддерживаются JPG, PNG, HEIC, ZIP и др.)",
+    "Загрузите изображения или архив (до 300 МБ, поддерживаются JPG, PNG, HEIC, ZIP и др.)",
     type=["jpg", "jpeg", "png", "bmp", "webp", "tiff", "heic", "heif", "zip"],
     accept_multiple_files=True,
     key=st.session_state["reset_uploader"]
