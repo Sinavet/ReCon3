@@ -90,8 +90,16 @@ if mode == "Водяной знак":
     preset_choice = st.selectbox("Предустановленные", ["Нет"] + preset_names)
     user_wm_file = st.file_uploader("Или загрузите свой PNG-водяной знак", type=["png"], key="user_wm")
     user_wm_bytes = None
+    user_wm_path = None
+    user_wm_filename = None
     if user_wm_file is not None:
         user_wm_bytes = user_wm_file.read()
+        user_wm_filename = user_wm_file.name
+        # Сохраняем временный файл для предпросмотра
+        tmp_dir = tempfile.gettempdir()
+        user_wm_path = os.path.join(tmp_dir, f"user_wm_{user_wm_filename}")
+        with open(user_wm_path, "wb") as f:
+            f.write(user_wm_bytes)
     st.markdown("**Или текстовый водяной знак:**")
     text_wm = st.text_input("Текст водяного знака", "")
     col1, col2 = st.columns(2)
@@ -127,11 +135,10 @@ if mode == "Водяной знак":
     else:
         preview_img = Image.new("RGB", (400, 300), (200, 200, 200))
     wm_path = None
-    wm_bytes = None
     if preset_choice != "Нет":
         wm_path = os.path.join(watermark_dir, preset_choice)
-    elif user_wm_bytes:
-        wm_bytes = BytesIO(user_wm_bytes)
+    elif user_wm_path:
+        wm_path = user_wm_path
     text_opts = {
         "font_size": text_size,
         "color": tuple(int(text_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (int(255 * opacity),)
@@ -139,8 +146,6 @@ if mode == "Водяной знак":
     try:
         if wm_path:
             preview = apply_watermark(preview_img, watermark_path=wm_path, position=position, opacity=opacity, scale=scale)
-        elif wm_bytes:
-            preview = apply_watermark(preview_img, watermark_path=wm_bytes, position=position, opacity=opacity, scale=scale)
         elif text_wm:
             preview = apply_watermark(preview_img, text=text_wm, position=position, opacity=opacity, scale=scale, text_options=text_opts)
         else:
@@ -153,7 +158,7 @@ if st.button("🔄 Начать сначала", type="primary"):
     reset_all()
     st.rerun()
 
-MAX_SIZE_MB = 1000
+MAX_SIZE_MB = 3072
 MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 
 if uploaded_files and not st.session_state["result_zip"]:
@@ -278,12 +283,16 @@ if uploaded_files and not st.session_state["result_zip"]:
                         progress_bar = st.progress(0, text="Файлы...")
                         # Определяем параметры водяного знака
                         wm_path = None
-                        wm_bytes = None
-                        no_watermark = False
+                        user_wm_path = None
                         if preset_choice != "Нет":
                             wm_path = os.path.join(watermark_dir, preset_choice)
-                        elif user_wm_bytes:
-                            wm_bytes = BytesIO(user_wm_bytes)
+                        elif user_wm_bytes and user_wm_filename:
+                            # Сохраняем временный файл для обработки
+                            tmp_dir = tempfile.gettempdir()
+                            user_wm_path = os.path.join(tmp_dir, f"user_wm_{user_wm_filename}")
+                            with open(user_wm_path, "wb") as f:
+                                f.write(user_wm_bytes)
+                            wm_path = user_wm_path
                         elif text_wm:
                             pass  # текстовый вотермарк
                         else:
@@ -329,8 +338,6 @@ if uploaded_files and not st.session_state["result_zip"]:
                                             errors += 1
                                             continue
                                     result = apply_watermark(img, watermark_path=wm_path, position=position, opacity=opacity, scale=scale)
-                                elif user_wm_bytes:
-                                    result = apply_watermark(img, watermark_path=BytesIO(user_wm_bytes), position=position, opacity=opacity, scale=scale)
                                 elif text_wm:
                                     result = apply_watermark(img, text=text_wm, position=position, opacity=opacity, scale=scale, text_options=text_opts)
                                 else:
@@ -366,30 +373,36 @@ if uploaded_files and not st.session_state["result_zip"]:
 if st.session_state["result_zip"]:
     stats = st.session_state["stats"]
     mode = st.session_state["mode"]
+    # --- Новый блок: определяем способ скачивания ---
+    DOWNLOADS_DIR = "downloads"
+    os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+    result_filename = None
     if mode == "Переименование фото":
-        st.success(f"Готово! Переименовано: {stats.get('renamed', 0)} из {stats.get('total', 0)} папок. Пропущено: {stats.get('skipped', 0)}")
-        st.download_button(
-            label="📥 Скачать архив с переименованными фото",
-            data=st.session_state["result_zip"],
-            file_name="renamed_photos.zip",
-            mime="application/zip"
-        )
+        result_filename = "renamed_photos.zip"
+        msg = f"Готово! Переименовано: {stats.get('renamed', 0)} из {stats.get('total', 0)} папок. Пропущено: {stats.get('skipped', 0)}"
     elif mode == "Конвертация в JPG":
-        st.success(f"Готово! Конвертировано: {stats.get('converted', 0)} из {stats.get('total', 0)} файлов. Ошибок: {stats.get('errors', 0)}")
-        st.download_button(
-            label="📥 Скачать архив с JPG",
-            data=st.session_state["result_zip"],
-            file_name="converted_images.zip",
-            mime="application/zip"
-        )
+        result_filename = "converted_images.zip"
+        msg = f"Готово! Конвертировано: {stats.get('converted', 0)} из {stats.get('total', 0)} файлов. Ошибок: {stats.get('errors', 0)}"
     elif mode == "Водяной знак":
-        st.success(f"Готово! Обработано: {stats.get('processed', 0)} из {stats.get('total', 0)} файлов. Ошибок: {stats.get('errors', 0)}")
-        st.download_button(
-            label="📥 Скачать архив с водяными знаками",
-            data=st.session_state["result_zip"],
-            file_name="watermarked_images.zip",
-            mime="application/zip"
-        )
+        result_filename = "watermarked_images.zip"
+        msg = f"Готово! Обработано: {stats.get('processed', 0)} из {stats.get('total', 0)} файлов. Ошибок: {stats.get('errors', 0)}"
+    # Сохраняем файл на диск
+    result_path = os.path.join(DOWNLOADS_DIR, result_filename)
+    with open(result_path, "wb") as f:
+        f.write(st.session_state["result_zip"])
+    file_size_mb = os.path.getsize(result_path) / (1024 * 1024)
+    st.success(msg)
+    if file_size_mb > 100:
+        st.markdown(f"[📥 Скачать архив]({result_path}) (через статическую ссылку, {file_size_mb:.1f} МБ)")
+        st.info("Если скачивание не начинается, скопируйте ссылку и откройте в новой вкладке. Для больших файлов download_button не используется.")
+    else:
+        with open(result_path, "rb") as f:
+            st.download_button(
+                label="📥 Скачать архив",
+                data=f.read(),
+                file_name=result_filename,
+                mime="application/zip"
+            )
     with st.expander("Показать лог обработки"):
         st.text_area("Лог:", value="\n".join(st.session_state["log"]), height=300, disabled=True)
         st.download_button(
