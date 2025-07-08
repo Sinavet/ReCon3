@@ -116,13 +116,31 @@ if mode == "Водяной знак":
 
     # --- Предпросмотр водяного знака ---
     st.markdown("**Предпросмотр водяного знака:**")
-    if uploaded_files:
-        try:
-            preview_file = uploaded_files[0]
-            preview_img = Image.open(preview_file)
-        except Exception:
-            preview_img = Image.new("RGB", (400, 300), bg_color)
-    else:
+    preview_img = None
+    # Найти первое изображение для предпросмотра (учитывая архивы)
+    def get_first_image(uploaded_files):
+        for file in uploaded_files:
+            if file.name.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff', '.heic', '.heif')):
+                file.seek(0)
+                try:
+                    return Image.open(file)
+                except Exception:
+                    continue
+            elif file.name.lower().endswith('.zip'):
+                import zipfile
+                from io import BytesIO
+                file.seek(0)
+                with zipfile.ZipFile(file, 'r') as zf:
+                    for name in zf.namelist():
+                        if name.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff', '.heic', '.heif')):
+                            with zf.open(name) as imgf:
+                                try:
+                                    return Image.open(BytesIO(imgf.read()))
+                                except Exception:
+                                    continue
+        return None
+    preview_img = get_first_image(uploaded_files) if uploaded_files else None
+    if preview_img is None:
         preview_img = Image.new("RGB", (400, 300), bg_color)
     wm_path = None
     if preset_choice != "Нет":
@@ -137,7 +155,7 @@ if mode == "Водяной знак":
             preview = apply_watermark(preview_img, watermark_path=wm_path, position=pos_map[position], opacity=opacity, scale=size_percent/100.0)
         else:
             preview = preview_img
-        st.image(preview, caption="Предпросмотр", use_column_width=True)
+        st.image(preview, caption="Предпросмотр", use_container_width=True)
     except Exception as e:
         st.warning(f"Ошибка предпросмотра: {e}")
 
