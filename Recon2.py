@@ -179,6 +179,7 @@ if uploaded_files and not st.session_state["result_zip"]:
                         log.append(f"❌ {uploaded.name}: превышает лимит {MAX_SIZE_MB} МБ.")
                         continue
                     file_bytes = uploaded.read()
+                    log.append(f"Размер считанных байт: {len(file_bytes)}")
                     ext = os.path.splitext(uploaded.name)[1]
                     safe_name = f"img_{uuid.uuid4().hex}{ext}"
                     if uploaded.name.lower().endswith(".zip"):
