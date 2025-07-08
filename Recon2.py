@@ -112,22 +112,26 @@ if mode == "Водяной знак":
         'Левый верхний угол': 'top_left',
         'По центру': 'center',
     }
+    bg_color = st.sidebar.color_picker("Цвет фона предпросмотра", "#CCCCCC")
+
     # --- Предпросмотр водяного знака ---
     st.markdown("**Предпросмотр водяного знака:**")
-    preview_img = None
     if uploaded_files:
         try:
             preview_file = uploaded_files[0]
             preview_img = Image.open(preview_file)
         except Exception:
-            preview_img = Image.new("RGB", (400, 300), (200, 200, 200))
+            preview_img = Image.new("RGB", (400, 300), bg_color)
     else:
-        preview_img = Image.new("RGB", (400, 300), (200, 200, 200))
+        preview_img = Image.new("RGB", (400, 300), bg_color)
     wm_path = None
     if preset_choice != "Нет":
         wm_path = os.path.join(watermark_dir, preset_choice)
-    elif user_wm_path:
-        wm_path = user_wm_path
+    elif user_wm_file:
+        tmp_dir = tempfile.gettempdir()
+        wm_path = os.path.join(tmp_dir, f"user_wm_{user_wm_file.name}")
+        with open(wm_path, "wb") as f:
+            f.write(user_wm_file.getvalue() if hasattr(user_wm_file, 'getvalue') else user_wm_file.read())
     try:
         if wm_path:
             preview = apply_watermark(preview_img, watermark_path=wm_path, position=pos_map[position], opacity=opacity, scale=size_percent/100.0)
@@ -364,7 +368,8 @@ if uploaded_files and not st.session_state["result_zip"]:
                             st.session_state["log"] = log
                             st.write(log)  # Выводим лог для отладки
 
-if uploaded_files and mode == "Водяной знак" and not st.session_state["result_zip"]:
+# --- Кнопка обработки ---
+if st.button("Обработать и скачать архив"):
     if not (preset_choice != "Нет" or user_wm_file):
         st.error("Выберите или загрузите водяной знак!")
     else:
@@ -373,15 +378,7 @@ if uploaded_files and mode == "Водяной знак" and not st.session_state
         errors = 0
         log = []
         # Определяем путь к водяному знаку
-        wm_path = None
-        if preset_choice != "Нет":
-            wm_path = os.path.join(watermark_dir, preset_choice)
-        elif user_wm_file:
-            tmp_dir = tempfile.gettempdir()
-            wm_path = os.path.join(tmp_dir, f"user_wm_{user_wm_file.name}")
-            with open(wm_path, "wb") as f:
-                f.write(user_wm_file.getvalue() if hasattr(user_wm_file, 'getvalue') else user_wm_file.read())
-        # Архив для результата
+        # (wm_path уже определён выше)
         zip_buffer = BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w') as zipf:
             for file in uploaded_files:
