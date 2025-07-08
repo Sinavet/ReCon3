@@ -75,7 +75,7 @@ uploaded_files = st.file_uploader(
     "Загрузите изображения или архив (до 300 МБ, поддерживаются JPG, PNG, HEIC, ZIP и др.)",
     type=["jpg", "jpeg", "png", "bmp", "webp", "tiff", "heic", "heif", "zip"],
     accept_multiple_files=True,
-    key="main_upload"
+    key=st.session_state["reset_uploader"]
 )
 
 # --- UI для режима Водяной знак ---
