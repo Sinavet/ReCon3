@@ -446,11 +446,13 @@ if st.session_state["result_zip"]:
         st.info("Для загрузки на Яндекс.Диск задайте YANDEX_TOKEN в secrets или переменных окружения.")
     # --- Кнопка загрузки на Google Drive ---
     if st.button("Загрузить на Google Drive"):
-        try:
-            view_link, download_link = upload_to_gdrive(result_path)
-            st.success(f"Файл загружен! [Открыть в Google Drive]({view_link})  \n[Скачать напрямую]({download_link})")
-        except Exception as e:
-            st.error(f"Ошибка загрузки на Google Drive: {e}")
+        with st.spinner("Загрузка на Google Drive..."):
+            try:
+                view_link, download_link = upload_to_gdrive(result_path)
+                st.success(f"Файл загружен! [Открыть в Google Drive]({view_link})  \n[Скачать напрямую]({download_link})")
+            except Exception as e:
+                st.error(f"Ошибка загрузки на Google Drive: {e}")
+                st.info("Если вы видите ссылку для авторизации в логах/консоли — перейдите по ней, авторизуйтесь и вставьте код обратно. После этого повторите попытку загрузки.")
     # --- Скачивание локально ---
     if file_size_mb > 100:
         st.markdown(f"[📥 Скачать архив]({result_path}) (через статическую ссылку, {file_size_mb:.1f} МБ)")
