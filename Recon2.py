@@ -14,7 +14,6 @@ except ImportError:
 import shutil
 from io import BytesIO
 import requests
-# import imghdr  # Удалено, больше не используется
 
 pillow_heif.register_heif_opener()
 
