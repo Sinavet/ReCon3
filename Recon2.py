@@ -161,68 +161,144 @@ if mode == "Водяной знак":
 # --- Кнопка обработки для режима Переименование фото ---
 if mode == "Переименование фото" and uploaded_files:
     if st.button("Обработать и скачать архив", key="process_rename_btn"):
+        import tempfile
+        from pathlib import Path
         st.subheader('Обработка изображений...')
-        processed_files = []
-        errors = 0
-        log = []
-        zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w') as zipf:
-            for file in uploaded_files:
-                try:
-                    # Пример логики: просто переименовать (можно заменить на свою)
-                    file.seek(0)
-                    img = Image.open(file)
-                    img_bytes = BytesIO()
-                    img.save(img_bytes, format='JPEG')
-                    img_bytes.seek(0)
-                    new_name = f"renamed_{file.name}"
-                    zipf.writestr(new_name, img_bytes.read())
-                    processed_files.append(new_name)
-                    log.append(f"✅ {file.name} переименован в {new_name}")
-                except Exception as e:
-                    errors += 1
-                    log.append(f"❌ {file.name}: ошибка обработки ({e})")
-        zip_buffer.seek(0)
-        st.session_state["result_zip"] = zip_buffer.getvalue()
-        st.session_state["stats"] = {
-            "total": len(uploaded_files),
-            "renamed": len(processed_files),
-            "skipped": errors
-        }
-        st.session_state["log"] = log
+        with tempfile.TemporaryDirectory() as temp_dir:
+            all_images = []
+            log = []
+            # --- Сбор всех файлов ---
+            for uploaded in uploaded_files:
+                if uploaded.name.lower().endswith(".zip"):
+                    zip_temp = os.path.join(temp_dir, uploaded.name)
+                    with open(zip_temp, "wb") as f:
+                        f.write(uploaded.read())
+                    with zipfile.ZipFile(zip_temp, "r") as zip_ref:
+                        zip_ref.extractall(temp_dir)
+                    extracted = [file for file in Path(temp_dir).rglob("*") if file.is_file() and file.suffix.lower() in SUPPORTED_EXTS]
+                    log.append(f"📦 Архив {uploaded.name}: найдено {len(extracted)} изображений.")
+                    all_images.extend(extracted)
+                elif uploaded.name.lower().endswith(SUPPORTED_EXTS):
+                    img_temp = os.path.join(temp_dir, uploaded.name)
+                    with open(img_temp, "wb") as f:
+                        f.write(uploaded.read())
+                    all_images.append(Path(img_temp))
+                    log.append(f"🖼️ Файл {uploaded.name}: добавлен.")
+                else:
+                    log.append(f"❌ {uploaded.name}: не поддерживается.")
+            if not all_images:
+                st.error("Не найдено ни одного поддерживаемого изображения.")
+            else:
+                exts = SUPPORTED_EXTS
+                renamed = 0
+                skipped = 0
+                folders = sorted({img.parent for img in all_images})
+                progress_bar = st.progress(0, text="Папки...")
+                for i, folder in enumerate(folders):
+                    photos = [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in exts]
+                    relative_folder_path = folder.relative_to(temp_dir)
+                    if len(photos) == 1:
+                        photo = photos[0]
+                        new_name = f"1{photo.suffix.lower()}"
+                        new_path = photo.parent / new_name
+                        relative_photo_path = photo.relative_to(temp_dir)
+                        relative_new_path = new_path.relative_to(temp_dir)
+                        if new_path.exists():
+                            log.append(f"Пропущено: Файл '{relative_new_path}' уже существует.")
+                            skipped += 1
+                        else:
+                            photo.rename(new_path)
+                            log.append(f"Переименовано: '{relative_photo_path}' -> '{relative_new_path}'")
+                            renamed += 1
+                    elif len(photos) > 1:
+                        log.append(f"Пропущено: В папке '{relative_folder_path}' несколько фото.")
+                        skipped += len(photos)
+                    else:
+                        log.append(f"Инфо: В папке '{relative_folder_path}' нет фото.")
+                        skipped += 1
+                    progress_bar.progress((i + 1) / len(folders), text=f"Обработано папок: {i + 1}/{len(folders)}")
+                extracted_items = [p for p in Path(temp_dir).iterdir() if p.name != uploaded_files[0].name]
+                zip_root = Path(temp_dir)
+                if len(extracted_items) == 1 and extracted_items[0].is_dir():
+                    zip_root = extracted_items[0]
+                result_zip = os.path.join(temp_dir, "result_rename.zip")
+                import shutil
+                shutil.make_archive(base_name=result_zip[:-4], format='zip', root_dir=str(zip_root))
+                with open(result_zip, "rb") as f:
+                    st.session_state["result_zip"] = f.read()
+                st.session_state["stats"] = {
+                    "total": len(all_images),
+                    "renamed": renamed,
+                    "skipped": skipped
+                }
+                st.session_state["log"] = log
 
 # --- Кнопка обработки для режима Конвертация в JPG ---
 elif mode == "Конвертация в JPG" and uploaded_files:
     if st.button("Обработать и скачать архив", key="process_convert_btn"):
+        import tempfile
+        from pathlib import Path
         st.subheader('Обработка изображений...')
-        processed_files = []
-        errors = 0
-        log = []
-        zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w') as zipf:
-            for file in uploaded_files:
-                try:
-                    file.seek(0)
-                    img = Image.open(file)
-                    img = img.convert('RGB')
-                    img_bytes = BytesIO()
-                    img.save(img_bytes, format='JPEG')
-                    img_bytes.seek(0)
-                    new_name = os.path.splitext(file.name)[0] + '.jpg'
-                    zipf.writestr(new_name, img_bytes.read())
-                    processed_files.append(new_name)
-                    log.append(f"✅ {file.name} конвертирован в {new_name}")
-                except Exception as e:
-                    errors += 1
-                    log.append(f"❌ {file.name}: ошибка конвертации ({e})")
-        zip_buffer.seek(0)
-        st.session_state["result_zip"] = zip_buffer.getvalue()
-        st.session_state["stats"] = {
-            "total": len(uploaded_files),
-            "converted": len(processed_files),
-            "errors": errors
-        }
-        st.session_state["log"] = log
+        with tempfile.TemporaryDirectory() as temp_dir:
+            all_images = []
+            log = []
+            # --- Сбор всех файлов ---
+            for uploaded in uploaded_files:
+                if uploaded.name.lower().endswith(".zip"):
+                    zip_temp = os.path.join(temp_dir, uploaded.name)
+                    with open(zip_temp, "wb") as f:
+                        f.write(uploaded.read())
+                    with zipfile.ZipFile(zip_temp, "r") as zip_ref:
+                        zip_ref.extractall(temp_dir)
+                    extracted = [file for file in Path(temp_dir).rglob("*") if file.is_file() and file.suffix.lower() in SUPPORTED_EXTS]
+                    log.append(f"📦 Архив {uploaded.name}: найдено {len(extracted)} изображений.")
+                    all_images.extend(extracted)
+                elif uploaded.name.lower().endswith(SUPPORTED_EXTS):
+                    img_temp = os.path.join(temp_dir, uploaded.name)
+                    with open(img_temp, "wb") as f:
+                        f.write(uploaded.read())
+                    all_images.append(Path(img_temp))
+                    log.append(f"🖼️ Файл {uploaded.name}: добавлен.")
+                else:
+                    log.append(f"❌ {uploaded.name}: не поддерживается.")
+            if not all_images:
+                st.error("Не найдено ни одного поддерживаемого изображения.")
+            else:
+                converted_files = []
+                errors = 0
+                progress_bar = st.progress(0, text="Файлы...")
+                for i, img_path in enumerate(all_images, 1):
+                    rel_path = img_path.relative_to(temp_dir)
+                    out_path = os.path.join(temp_dir, str(rel_path.with_suffix('.jpg')))
+                    out_dir = os.path.dirname(out_path)
+                    os.makedirs(out_dir, exist_ok=True)
+                    try:
+                        img = Image.open(img_path)
+                        icc_profile = img.info.get('icc_profile')
+                        img = img.convert("RGB")
+                        img.save(out_path, "JPEG", quality=100, optimize=True, progressive=True, icc_profile=icc_profile)
+                        converted_files.append((out_path, rel_path.with_suffix('.jpg')))
+                        log.append(f"✅ {rel_path} → {rel_path.with_suffix('.jpg')}")
+                    except Exception as e:
+                        log.append(f"❌ {rel_path}: ошибка конвертации ({e})")
+                        errors += 1
+                    progress_bar.progress(i / len(all_images), text=f"Обработано файлов: {i}/{len(all_images)}")
+                if converted_files:
+                    result_zip = os.path.join(temp_dir, "result_convert.zip")
+                    with zipfile.ZipFile(result_zip, "w") as zipf:
+                        for src, rel in converted_files:
+                            zipf.write(src, arcname=rel)
+                    with open(result_zip, "rb") as f:
+                        st.session_state["result_zip"] = f.read()
+                    st.session_state["stats"] = {
+                        "total": len(all_images),
+                        "converted": len(converted_files),
+                        "errors": errors
+                    }
+                    st.session_state["log"] = log
+                else:
+                    st.error("Не удалось конвертировать ни одного изображения.")
+                    st.session_state["log"] = log
 
 if st.button("🔄 Начать сначала", type="primary"):
     reset_all()
