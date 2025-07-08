@@ -19,6 +19,11 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+import json
+
+if "GOOGLE_CREDENTIALS" in st.secrets:
+    with open("credentials.json", "w") as f:
+        f.write(st.secrets["GOOGLE_CREDENTIALS"])
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
