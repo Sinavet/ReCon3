@@ -201,6 +201,12 @@ if uploaded_files and not st.session_state["result_zip"]:
                         if file_size == 0:
                             log.append(f"❌ {uploaded.name}: файл скопирован с нулевым размером!")
                         else:
+                            # Для предпросмотра (если нужно)
+                            try:
+                                preview_img = Image.open(BytesIO(file_bytes))
+                                log.append(f"✅ Предпросмотр {uploaded.name} успешно открыт через BytesIO.")
+                            except Exception as e:
+                                log.append(f"❌ Ошибка предпросмотра {uploaded.name}: {e}")
                             all_images.append(Path(img_temp))
                     else:
                         log.append(f"❌ {uploaded.name}: не поддерживается.")
