@@ -75,7 +75,7 @@ uploaded_files = st.file_uploader(
     "Загрузите изображения или архив (до 300 МБ, поддерживаются JPG, PNG, HEIC, ZIP и др.)",
     type=["jpg", "jpeg", "png", "bmp", "webp", "tiff", "heic", "heif", "zip"],
     accept_multiple_files=True,
-    key=st.session_state["reset_uploader"]
+    key="main_upload"
 )
 
 # --- UI для режима Водяной знак ---
@@ -88,7 +88,7 @@ if mode == "Водяной знак":
     if os.path.exists(watermark_dir):
         preset_files = [f for f in os.listdir(watermark_dir) if f.lower().endswith((".png", ".jpg", ".jpeg"))]
     preset_choice = st.selectbox("Водяные знаки из папки watermarks/", ["Нет"] + preset_files)
-    user_wm_file = st.file_uploader("Или загрузите свой PNG/JPG водяной знак", type=["png", "jpg", "jpeg"], key="user_wm")
+    user_wm_file = st.file_uploader("Или загрузите свой PNG/JPG водяной знак", type=["png", "jpg", "jpeg"], key="watermark_upload")
     user_wm_path = None
     if user_wm_file is not None:
         tmp_dir = tempfile.gettempdir()
