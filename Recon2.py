@@ -280,7 +280,7 @@ if uploaded_files and not st.session_state["result_zip"]:
                         user_wm_path = None
                         if preset_choice != "Нет":
                             wm_path = os.path.join(watermark_dir, preset_choice)
-                        elif user_wm_path:
+                        elif user_wm_file:
                             wm_path = user_wm_path
                         else:
                             st.error("Выберите или загрузите водяной знак!")
@@ -363,6 +363,56 @@ if uploaded_files and not st.session_state["result_zip"]:
                             st.error("Не удалось обработать ни одного изображения.")
                             st.session_state["log"] = log
                             st.write(log)  # Выводим лог для отладки
+
+if uploaded_files and mode == "Водяной знак" and not st.session_state["result_zip"]:
+    if not (preset_choice != "Нет" or user_wm_file):
+        st.error("Выберите или загрузите водяной знак!")
+    else:
+        st.subheader('Обработка изображений...')
+        processed_files = []
+        errors = 0
+        log = []
+        # Определяем путь к водяному знаку
+        wm_path = None
+        if preset_choice != "Нет":
+            wm_path = os.path.join(watermark_dir, preset_choice)
+        elif user_wm_file:
+            tmp_dir = tempfile.gettempdir()
+            wm_path = os.path.join(tmp_dir, f"user_wm_{user_wm_file.name}")
+            with open(wm_path, "wb") as f:
+                f.write(user_wm_file.getvalue() if hasattr(user_wm_file, 'getvalue') else user_wm_file.read())
+        # Архив для результата
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w') as zipf:
+            for file in uploaded_files:
+                try:
+                    file.seek(0)
+                    img = Image.open(file).convert('RGBA')
+                    result = apply_watermark(
+                        img,
+                        watermark_path=wm_path,
+                        position=pos_map[position],
+                        opacity=opacity,
+                        scale=size_percent/100.0
+                    )
+                    out_img = result.convert('RGB')
+                    img_bytes = BytesIO()
+                    out_img.save(img_bytes, format='JPEG')
+                    img_bytes.seek(0)
+                    zipf.writestr(f'watermarked_{file.name}', img_bytes.read())
+                    processed_files.append(file.name)
+                    log.append(f"✅ {file.name} обработан")
+                except Exception as e:
+                    errors += 1
+                    log.append(f"❌ {file.name}: ошибка обработки ({e})")
+        zip_buffer.seek(0)
+        st.session_state["result_zip"] = zip_buffer.getvalue()
+        st.session_state["stats"] = {
+            "total": len(uploaded_files),
+            "processed": len(processed_files),
+            "errors": errors
+        }
+        st.session_state["log"] = log
 
 # --- Функция для загрузки на TransferNow ---
 def upload_to_transfernow(file_path):
