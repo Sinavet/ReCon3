@@ -256,7 +256,11 @@ elif mode == "Конвертация в JPG" and uploaded_files:
                     with open(zip_temp, "wb") as f:
                         f.write(uploaded.read())
                     with zipfile.ZipFile(zip_temp, "r") as zip_ref:
-                        zip_ref.extractall(temp_dir)
+                        for member in zip_ref.namelist():
+                            try:
+                                zip_ref.extract(member, temp_dir)
+                            except Exception as e:
+                                log.append(f"❌ Не удалось извлечь {member} из {uploaded.name}: {e}")
                     extracted = [file for file in Path(temp_dir).rglob("*") if file.is_file() and file.suffix.lower() in SUPPORTED_EXTS]
                     log.append(f"📦 Архив {uploaded.name}: найдено {len(extracted)} изображений.")
                     all_images.extend(extracted)
@@ -324,7 +328,11 @@ if mode == "Водяной знак":
                         with open(zip_temp, "wb") as f:
                             f.write(uploaded.read())
                         with zipfile.ZipFile(zip_temp, "r") as zip_ref:
-                            zip_ref.extractall(temp_dir)
+                            for member in zip_ref.namelist():
+                                try:
+                                    zip_ref.extract(member, temp_dir)
+                                except Exception as e:
+                                    log.append(f"❌ Не удалось извлечь {member} из {uploaded.name}: {e}")
                         extracted = [file for file in Path(temp_dir).rglob("*") if file.is_file() and file.suffix.lower() in SUPPORTED_EXTS]
                         log.append(f"📦 Архив {uploaded.name}: найдено {len(extracted)} изображений.")
                         all_images.extend(extracted)
