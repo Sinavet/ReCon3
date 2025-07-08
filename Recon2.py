@@ -14,6 +14,7 @@ except ImportError:
 import shutil
 from io import BytesIO
 import requests
+import imghdr
 
 pillow_heif.register_heif_opener()
 
@@ -312,7 +313,14 @@ if uploaded_files and not st.session_state["result_zip"]:
                             out_dir = os.path.dirname(out_path)
                             os.makedirs(out_dir, exist_ok=True)
                             try:
-                                img = Image.open(img_path)
+                                if not os.path.exists(img_path):
+                                    log.append(f"❌ {img_path}: файл не найден!")
+                                elif os.path.getsize(img_path) == 0:
+                                    log.append(f"❌ {img_path}: файл пустой!")
+                                elif imghdr.what(img_path) != 'png' and img_path.lower().endswith('.png'):
+                                    log.append(f"❌ {img_path}: файл не распознан как PNG!")
+                                else:
+                                    img = Image.open(img_path)
                                 # Диагностика для предустановленного PNG
                                 if wm_path:
                                     # Проверка регистра имени файла
