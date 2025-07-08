@@ -159,7 +159,7 @@ if mode == "Водяной знак":
         st.warning(f"Ошибка предпросмотра: {e}")
 
     # --- Кнопка обработки ---
-    if st.button("Обработать и скачать архив"):
+    if st.button("Обработать и скачать архив", key="process_archive_btn"):
         if not (preset_choice != "Нет" or user_wm_file):
             st.error("Выберите или загрузите водяной знак!")
         else:
