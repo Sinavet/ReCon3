@@ -13,58 +13,7 @@ except ImportError:
     st.warning("Для поддержки HEIC/HEIF установите пакет pillow-heif: pip install pillow-heif")
 import shutil
 from io import BytesIO
-import pickle
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-import json
-
-if "GOOGLE_CREDENTIALS" in st.secrets:
-    with open("credentials.json", "w") as f:
-        f.write(st.secrets["GOOGLE_CREDENTIALS"])
-
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-
-def manual_gdrive_auth():
-    flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-    auth_url, _ = flow.authorization_url(prompt='consent')
-    st.warning(f"Перейдите по ссылке для авторизации: [Открыть Google OAuth]({auth_url})")
-    code = st.text_input("Вставьте код авторизации из браузера сюда:")
-    creds = None
-    if code:
-        try:
-            flow.fetch_token(code=code)
-            creds = flow.credentials
-            with open('token.pickle', 'wb') as token:
-                pickle.dump(creds, token)
-            st.success("Авторизация прошла успешно! Теперь можно загружать на Google Drive.")
-        except Exception as e:
-            st.error(f"Ошибка авторизации: {e}")
-    return creds
-
-def get_gdrive_service():
-    creds = None
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            creds = manual_gdrive_auth()
-            if not creds:
-                st.stop()
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
-    return build('drive', 'v3', credentials=creds)
-
-def upload_to_gdrive(local_path, filename=None):
-    service = get_gdrive_service()
-    file_metadata = {'name': filename or os.path.basename(local_path)}
-    media = MediaFileUpload(local_path, resumable=True)
-    file = service.files().create(body=file_metadata, media_body=media, fields='id,webViewLink,webContentLink').execute()
-    return file.get('webViewLink'), file.get('webContentLink')
+import requests
 
 pillow_heif.register_heif_opener()
 
@@ -422,12 +371,14 @@ if uploaded_files and not st.session_state["result_zip"]:
                             st.session_state["log"] = log
                             st.write(log)  # Выводим лог для отладки
 
-# --- Функция для загрузки на Яндекс.Диск ---
-def upload_to_yadisk(local_path, remote_path, token):
-    y = yadisk.YaDisk(token=token)
-    y.upload(local_path, remote_path, overwrite=True)
-    public_url = y.publish(remote_path)
-    return public_url
+# --- Функция для загрузки на transfer.sh ---
+def upload_to_transfersh(file_path):
+    with open(file_path, 'rb') as f:
+        response = requests.put(f'https://transfer.sh/{os.path.basename(file_path)}', data=f)
+    if response.status_code == 200:
+        return response.text.strip()
+    else:
+        return None
 
 if st.session_state["result_zip"]:
     stats = st.session_state["stats"]
@@ -449,27 +400,17 @@ if st.session_state["result_zip"]:
         f.write(st.session_state["result_zip"])
     file_size_mb = os.path.getsize(result_path) / (1024 * 1024)
     st.success(msg)
-    # --- Кнопка загрузки на Яндекс.Диск ---
-    yandex_token = st.secrets["YANDEX_TOKEN"] if "YANDEX_TOKEN" in st.secrets else os.environ.get("YANDEX_TOKEN")
-    if yandex_token:
-        remote_path = f"/Apps/PhotoFlow/{result_filename}"
-        if st.button("Загрузить на Яндекс.Диск"):
+    # --- Кнопка загрузки на transfer.sh ---
+    if st.button("Загрузить на transfer.sh"):
+        with st.spinner("Загрузка на transfer.sh..."):
             try:
-                public_url = upload_to_yadisk(result_path, remote_path, yandex_token)
-                st.success(f"Файл загружен! [Скачать с Яндекс.Диска]({public_url})")
+                public_url = upload_to_transfersh(result_path)
+                if public_url:
+                    st.success(f"Файл загружен! [Скачать с transfer.sh]({public_url})")
+                else:
+                    st.error("Ошибка загрузки на transfer.sh")
             except Exception as e:
-                st.error(f"Ошибка загрузки на Яндекс.Диск: {e}")
-    else:
-        st.info("Для загрузки на Яндекс.Диск задайте YANDEX_TOKEN в secrets или переменных окружения.")
-    # --- Кнопка загрузки на Google Drive ---
-    if st.button("Загрузить на Google Drive"):
-        with st.spinner("Загрузка на Google Drive..."):
-            try:
-                view_link, download_link = upload_to_gdrive(result_path)
-                st.success(f"Файл загружен! [Открыть в Google Drive]({view_link})  \n[Скачать напрямую]({download_link})")
-            except Exception as e:
-                st.error(f"Ошибка загрузки на Google Drive: {e}")
-                st.info("Если вы видите ссылку для авторизации в логах/консоли — перейдите по ней, авторизуйтесь и вставьте код обратно. После этого повторите попытку загрузки.")
+                st.error(f"Ошибка загрузки на transfer.sh: {e}")
     # --- Скачивание локально ---
     if file_size_mb > 100:
         st.markdown(f"[📥 Скачать архив]({result_path}) (через статическую ссылку, {file_size_mb:.1f} МБ)")
