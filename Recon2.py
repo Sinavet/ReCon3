@@ -371,12 +371,18 @@ if uploaded_files and not st.session_state["result_zip"]:
                             st.session_state["log"] = log
                             st.write(log)  # Выводим лог для отладки
 
-# --- Функция для загрузки на transfer.sh ---
-def upload_to_transfersh(file_path):
+# --- Функция для загрузки на TransferNow ---
+def upload_to_transfernow(file_path):
+    url = "https://api.transfernow.net/v2/transfers"
     with open(file_path, 'rb') as f:
-        response = requests.put(f'https://transfer.sh/{os.path.basename(file_path)}', data=f)
-    if response.status_code == 200:
-        return response.text.strip()
+        files = {'files': (os.path.basename(file_path), f)}
+        data = {
+            'message': 'Ваш файл готов!',
+            'email_from': 'noreply@photoflow.local'
+        }
+        response = requests.post(url, files=files, data=data)
+    if response.status_code == 201:
+        return response.json().get('download_url')
     else:
         return None
 
@@ -400,17 +406,17 @@ if st.session_state["result_zip"]:
         f.write(st.session_state["result_zip"])
     file_size_mb = os.path.getsize(result_path) / (1024 * 1024)
     st.success(msg)
-    # --- Кнопка загрузки на transfer.sh ---
-    if st.button("Загрузить на transfer.sh"):
-        with st.spinner("Загрузка на transfer.sh..."):
+    # --- Кнопка загрузки на TransferNow ---
+    if st.button("Загрузить на TransferNow"):
+        with st.spinner("Загрузка на TransferNow..."):
             try:
-                public_url = upload_to_transfersh(result_path)
+                public_url = upload_to_transfernow(result_path)
                 if public_url:
-                    st.success(f"Файл загружен! [Скачать с transfer.sh]({public_url})")
+                    st.success(f"Файл загружен! [Скачать с TransferNow]({public_url})")
                 else:
-                    st.error("Ошибка загрузки на transfer.sh")
+                    st.error("Ошибка загрузки на TransferNow")
             except Exception as e:
-                st.error(f"Ошибка загрузки на transfer.sh: {e}")
+                st.error(f"Ошибка загрузки на TransferNow: {e}")
     # --- Скачивание локально ---
     if file_size_mb > 100:
         st.markdown(f"[📥 Скачать архив]({result_path}) (через статическую ссылку, {file_size_mb:.1f} МБ)")
