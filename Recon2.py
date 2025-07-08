@@ -27,6 +27,23 @@ if "GOOGLE_CREDENTIALS" in st.secrets:
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
+def manual_gdrive_auth():
+    flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+    auth_url, _ = flow.authorization_url(prompt='consent')
+    st.warning(f"Перейдите по ссылке для авторизации: [Открыть Google OAuth]({auth_url})")
+    code = st.text_input("Вставьте код авторизации из браузера сюда:")
+    creds = None
+    if code:
+        try:
+            flow.fetch_token(code=code)
+            creds = flow.credentials
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
+            st.success("Авторизация прошла успешно! Теперь можно загружать на Google Drive.")
+        except Exception as e:
+            st.error(f"Ошибка авторизации: {e}")
+    return creds
+
 def get_gdrive_service():
     creds = None
     if os.path.exists('token.pickle'):
@@ -36,8 +53,9 @@ def get_gdrive_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0, open_browser=False)
+            creds = manual_gdrive_auth()
+            if not creds:
+                st.stop()
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
     return build('drive', 'v3', credentials=creds)
