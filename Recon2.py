@@ -13,6 +13,7 @@ except ImportError:
     st.warning("Для поддержки HEIC/HEIF установите пакет pillow-heif: pip install pillow-heif")
 import shutil
 from io import BytesIO
+import yadisk
 
 pillow_heif.register_heif_opener()
 
@@ -370,10 +371,16 @@ if uploaded_files and not st.session_state["result_zip"]:
                             st.session_state["log"] = log
                             st.write(log)  # Выводим лог для отладки
 
+# --- Функция для загрузки на Яндекс.Диск ---
+def upload_to_yadisk(local_path, remote_path, token):
+    y = yadisk.YaDisk(token=token)
+    y.upload(local_path, remote_path, overwrite=True)
+    public_url = y.publish(remote_path)
+    return public_url
+
 if st.session_state["result_zip"]:
     stats = st.session_state["stats"]
     mode = st.session_state["mode"]
-    # --- Новый блок: определяем способ скачивания ---
     DOWNLOADS_DIR = "downloads"
     os.makedirs(DOWNLOADS_DIR, exist_ok=True)
     result_filename = None
@@ -386,12 +393,24 @@ if st.session_state["result_zip"]:
     elif mode == "Водяной знак":
         result_filename = "watermarked_images.zip"
         msg = f"Готово! Обработано: {stats.get('processed', 0)} из {stats.get('total', 0)} файлов. Ошибок: {stats.get('errors', 0)}"
-    # Сохраняем файл на диск
     result_path = os.path.join(DOWNLOADS_DIR, result_filename)
     with open(result_path, "wb") as f:
         f.write(st.session_state["result_zip"])
     file_size_mb = os.path.getsize(result_path) / (1024 * 1024)
     st.success(msg)
+    # --- Кнопка загрузки на Яндекс.Диск ---
+    yandex_token = st.secrets["YANDEX_TOKEN"] if "YANDEX_TOKEN" in st.secrets else os.environ.get("YANDEX_TOKEN")
+    if yandex_token:
+        remote_path = f"/Apps/PhotoFlow/{result_filename}"
+        if st.button("Загрузить на Яндекс.Диск"):
+            try:
+                public_url = upload_to_yadisk(result_path, remote_path, yandex_token)
+                st.success(f"Файл загружен! [Скачать с Яндекс.Диска]({public_url})")
+            except Exception as e:
+                st.error(f"Ошибка загрузки на Яндекс.Диск: {e}")
+    else:
+        st.info("Для загрузки на Яндекс.Диск задайте YANDEX_TOKEN в secrets или переменных окружения.")
+    # --- Скачивание локально ---
     if file_size_mb > 100:
         st.markdown(f"[📥 Скачать архив]({result_path}) (через статическую ссылку, {file_size_mb:.1f} МБ)")
         st.info("Если скачивание не начинается, скопируйте ссылку и откройте в новой вкладке. Для больших файлов download_button не используется.")
