@@ -248,79 +248,10 @@ MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 # (Весь код обработки файлов вне блока с кнопкой удалён)
 
 # --- Кнопка обработки ---
-if st.button("Обработать и скачать архив"):
-    if not (preset_choice != "Нет" or user_wm_file):
-        st.error("Выберите или загрузите водяной знак!")
-    else:
-        st.subheader('Обработка изображений...')
-        processed_files = []
-        errors = 0
-        log = []
-        # Определяем путь к водяному знаку
-        # (wm_path уже определён выше)
-        zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w') as zipf:
-            for file in uploaded_files:
-                if file.name.lower().endswith('.zip'):
-                    file.seek(0)
-                    try:
-                        with zipfile.ZipFile(file, 'r') as zf:
-                            for name in zf.namelist():
-                                if name.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff', '.heic', '.heif')):
-                                    with zf.open(name) as imgf:
-                                        try:
-                                            img = Image.open(BytesIO(imgf.read())).convert('RGBA')
-                                            result = apply_watermark(
-                                                img,
-                                                watermark_path=wm_path,
-                                                position=pos_map[position],
-                                                opacity=opacity,
-                                                scale=size_percent/100.0
-                                            )
-                                            out_img = result.convert('RGB')
-                                            img_bytes = BytesIO()
-                                            out_img.save(img_bytes, format='JPEG')
-                                            img_bytes.seek(0)
-                                            zipf.writestr(f'watermarked_{os.path.basename(name)}', img_bytes.read())
-                                            processed_files.append(name)
-                                            log.append(f"✅ {name} обработан из архива {file.name}")
-                                        except Exception as e:
-                                            errors += 1
-                                            log.append(f"❌ {name} из {file.name}: ошибка обработки ({e})")
-                    except Exception as e:
-                        errors += 1
-                        log.append(f"❌ {file.name}: ошибка чтения архива ({e})")
-                elif file.name.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff', '.heic', '.heif')):
-                    try:
-                        file.seek(0)
-                        img = Image.open(file).convert('RGBA')
-                        result = apply_watermark(
-                            img,
-                            watermark_path=wm_path,
-                            position=pos_map[position],
-                            opacity=opacity,
-                            scale=size_percent/100.0
-                        )
-                        out_img = result.convert('RGB')
-                        img_bytes = BytesIO()
-                        out_img.save(img_bytes, format='JPEG')
-                        img_bytes.seek(0)
-                        zipf.writestr(f'watermarked_{file.name}', img_bytes.read())
-                        processed_files.append(file.name)
-                        log.append(f"✅ {file.name} обработан")
-                    except Exception as e:
-                        errors += 1
-                        log.append(f"❌ {file.name}: ошибка обработки ({e})")
-                else:
-                    log.append(f"❌ {file.name}: не поддерживается (не изображение и не архив)")
-        zip_buffer.seek(0)
-        st.session_state["result_zip"] = zip_buffer.getvalue()
-        st.session_state["stats"] = {
-            "total": len(processed_files),
-            "processed": len(processed_files),
-            "errors": errors
-        }
-        st.session_state["log"] = log
+# Удалён дублирующий вызов:
+# if st.button("Обработать и скачать архив"):
+#     ...
+# (Вся логика обработки уже реализована выше внутри блока 'Водяной знак')
 
 # --- Функция для загрузки на TransferNow ---
 def upload_to_transfernow(file_path):
