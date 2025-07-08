@@ -294,15 +294,21 @@ if uploaded_files and not st.session_state["result_zip"]:
                             out_dir = os.path.dirname(out_path)
                             os.makedirs(out_dir, exist_ok=True)
                             try:
-                                # Проверяем, что файл действительно изображение через Pillow
-                                try:
-                                    img = Image.open(img_path)
-                                    img.verify()  # Проверяет валидность изображения
-                                    img = Image.open(img_path)  # Открываем заново для работы
-                                except Exception as e:
-                                    log.append(f"❌ {img_path}: ошибка открытия изображения ({e})")
+                                # Проверяем, что файл существует и не пустой
+                                if not os.path.exists(img_path):
+                                    log.append(f"❌ {img_path}: файл не найден на диске!")
                                     errors += 1
                                     continue
+                                if os.path.getsize(img_path) == 0:
+                                    log.append(f"❌ {img_path}: файл нулевого размера!")
+                                    errors += 1
+                                    continue
+                                # Открываем изображение через BytesIO (как в testcurs.py)
+                                with open(img_path, "rb") as f:
+                                    img = Image.open(BytesIO(f.read()))
+                                img.verify()  # Проверяет валидность изображения
+                                with open(img_path, "rb") as f:
+                                    img = Image.open(BytesIO(f.read()))  # Открываем заново для работы
                                 # Диагностика для предустановленного PNG
                                 if wm_path:
                                     actual_files = os.listdir(os.path.dirname(wm_path))
