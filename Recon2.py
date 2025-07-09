@@ -264,20 +264,23 @@ if mode == "Переименование фото" and uploaded_files:
                 zip_root = Path(temp_dir)
                 if len(extracted_items) == 1 and extracted_items[0].is_dir():
                     zip_root = extracted_items[0]
-                st.write(f"zip_root: {zip_root}")
-                st.write(f"Содержимое zip_root: {[str(p) for p in Path(zip_root).rglob('*') if p.is_file()]}")
+                # --- Новый фильтр: исключаем исходные zip и result_*.zip ---
+                files_to_zip = []
+                for file in Path(zip_root).rglob("*"):
+                    if file.is_file():
+                        if file.suffix.lower() in SUPPORTED_EXTS or file.name == "log.txt":
+                            files_to_zip.append(file)
+                st.write(f"Файлы для архивации: {[str(f) for f in files_to_zip]}")
                 try:
                     result_zip = os.path.join(temp_dir, "result_rename.zip")
                     with zipfile.ZipFile(result_zip, "w") as zipf:
-                        for file in Path(zip_root).rglob("*"):
-                            if file.is_file():
-                                arcname = file.relative_to(zip_root)
-                                zipf.write(file, arcname=arcname)
+                        for file in files_to_zip:
+                            arcname = file.relative_to(zip_root)
+                            zipf.write(file, arcname=arcname)
                         # Добавляем лог всегда
                         log_path = os.path.join(temp_dir, "log.txt")
-                        with open(log_path, "w", encoding="utf-8") as logf:
-                            logf.write("\n".join(log))
-                        zipf.write(log_path, arcname="log.txt")
+                        if os.path.exists(log_path):
+                            zipf.write(log_path, arcname="log.txt")
                     st.write("Читаю архив в память...")
                     with open(result_zip, "rb") as f:
                         st.session_state["result_zip"] = f.read()
@@ -506,20 +509,23 @@ if mode == "Водяной знак":
                         zip_root = Path(temp_dir)
                         if len(extracted_items) == 1 and extracted_items[0].is_dir():
                             zip_root = extracted_items[0]
-                        st.write(f"zip_root: {zip_root}")
-                        st.write(f"Содержимое zip_root: {[str(p) for p in Path(zip_root).rglob('*') if p.is_file()]}")
+                        # --- Новый фильтр: исключаем исходные zip и result_*.zip ---
+                        files_to_zip = []
+                        for file in Path(zip_root).rglob("*"):
+                            if file.is_file():
+                                if file.suffix.lower() in SUPPORTED_EXTS or file.name == "log.txt":
+                                    files_to_zip.append(file)
+                        st.write(f"Файлы для архивации: {[str(f) for f in files_to_zip]}")
                         try:
                             result_zip = os.path.join(temp_dir, "result_watermark.zip")
                             with zipfile.ZipFile(result_zip, "w") as zipf:
-                                for file in Path(zip_root).rglob("*"):
-                                    if file.is_file():
-                                        arcname = file.relative_to(zip_root)
-                                        zipf.write(file, arcname=arcname)
+                                for file in files_to_zip:
+                                    arcname = file.relative_to(zip_root)
+                                    zipf.write(file, arcname=arcname)
                                 # Добавляем лог всегда
                                 log_path = os.path.join(temp_dir, "log.txt")
-                                with open(log_path, "w", encoding="utf-8") as logf:
-                                    logf.write("\n".join(log))
-                                zipf.write(log_path, arcname="log.txt")
+                                if os.path.exists(log_path):
+                                    zipf.write(log_path, arcname="log.txt")
                             st.write("Читаю архив в память...")
                             with open(result_zip, "rb") as f:
                                 st.session_state["result_zip"] = f.read()
