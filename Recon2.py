@@ -253,10 +253,15 @@ if mode == "Переименование фото" and uploaded_files:
                 zip_root = Path(temp_dir)
                 if len(extracted_items) == 1 and extracted_items[0].is_dir():
                     zip_root = extracted_items[0]
-                result_zip = os.path.join(temp_dir, "result_rename.zip")
+                st.write(f"zip_root: {zip_root}")
+                st.write(f"Содержимое zip_root: {[str(p) for p in Path(zip_root).rglob('*') if p.is_file()]}")
                 try:
-                    import shutil
-                    shutil.make_archive(base_name=result_zip[:-4], format='zip', root_dir=str(zip_root))
+                    result_zip = os.path.join(temp_dir, "result_rename.zip")
+                    with zipfile.ZipFile(result_zip, "w") as zipf:
+                        for file in Path(zip_root).rglob("*"):
+                            if file.is_file():
+                                arcname = file.relative_to(zip_root)
+                                zipf.write(file, arcname=arcname)
                     st.write("Читаю архив в память...")
                     with open(result_zip, "rb") as f:
                         st.session_state["result_zip"] = f.read()
@@ -430,10 +435,15 @@ if mode == "Водяной знак":
                         zip_root = Path(temp_dir)
                         if len(extracted_items) == 1 and extracted_items[0].is_dir():
                             zip_root = extracted_items[0]
-                        result_zip = os.path.join(temp_dir, "result_watermark.zip")
+                        st.write(f"zip_root: {zip_root}")
+                        st.write(f"Содержимое zip_root: {[str(p) for p in Path(zip_root).rglob('*') if p.is_file()]}")
                         try:
-                            import shutil
-                            shutil.make_archive(base_name=result_zip[:-4], format='zip', root_dir=str(zip_root))
+                            result_zip = os.path.join(temp_dir, "result_watermark.zip")
+                            with zipfile.ZipFile(result_zip, "w") as zipf:
+                                for file in Path(zip_root).rglob("*"):
+                                    if file.is_file():
+                                        arcname = file.relative_to(zip_root)
+                                        zipf.write(file, arcname=arcname)
                             st.write("Читаю архив в память...")
                             with open(result_zip, "rb") as f:
                                 st.session_state["result_zip"] = f.read()
