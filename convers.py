@@ -15,6 +15,7 @@ def process_convert_mode(uploaded_files):
         with tempfile.TemporaryDirectory() as temp_dir:
             all_images = []
             log = []
+            st.write("[DEBUG] Старт process_convert_mode")
             # --- Сбор всех файлов ---
             for uploaded in uploaded_files:
                 if uploaded.name.lower().endswith(".zip"):
@@ -38,6 +39,7 @@ def process_convert_mode(uploaded_files):
                     log.append(f"🖼️ Файл {uploaded.name}: добавлен.")
                 else:
                     log.append(f"❌ {uploaded.name}: не поддерживается.")
+            st.write(f"[DEBUG] Всего файлов для обработки: {len(all_images)}")
             if not all_images:
                 st.error("Не найдено ни одного поддерживаемого изображения.")
                 # Создаём пустой архив с логом ошибок
@@ -71,7 +73,9 @@ def process_convert_mode(uploaded_files):
                         log.append(f"❌ {rel_path}: ошибка конвертации ({e})")
                         errors += 1
                     progress_bar.progress(i / len(all_images), text=f"Обработано файлов: {i}/{len(all_images)}")
+                st.write("[DEBUG] Начинаю архивацию результата...")
                 if converted_files:
+                    st.write(f"[DEBUG] files_to_zip: {[src for src, rel in converted_files]}")
                     result_zip = os.path.join(temp_dir, "result_convert.zip")
                     with zipfile.ZipFile(result_zip, "w") as zipf:
                         for src, rel in converted_files:
@@ -89,6 +93,7 @@ def process_convert_mode(uploaded_files):
                         "errors": errors
                     }
                     st.session_state["log"] = log
+                    st.write("[DEBUG] Архивация завершена, архив сохранён в session_state")
                 else:
                     st.error("Не удалось конвертировать ни одного изображения.")
                     # Создаём архив только с логом ошибок
@@ -102,6 +107,7 @@ def process_convert_mode(uploaded_files):
                         st.session_state["result_zip"] = f.read()
                     st.session_state["stats"] = {"total": len(all_images), "converted": 0, "errors": errors}
                     st.session_state["log"] = log
+                st.write("[DEBUG] Архивация завершена, архив сохранён в session_state")
 
     if st.session_state.get("result_zip"):
         st.download_button(
