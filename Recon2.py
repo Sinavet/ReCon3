@@ -507,7 +507,6 @@ if mode == "Водяной знак":
                         # Исправить формирование files_to_zip:
                         files_to_zip = [Path(out_path) for out_path, _ in processed_files]
                         # (log_path добавлять только если действительно нужен лог)
-                        st.write(f"Файлы для архивации: {[str(f) for f in files_to_zip]}")
                         try:
                             result_zip = os.path.join(temp_dir, "result_watermark.zip")
                             with zipfile.ZipFile(result_zip, "w") as zipf:
