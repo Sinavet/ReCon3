@@ -217,6 +217,17 @@ if mode == "Переименование фото" and uploaded_files:
             st.write(f"Собрано файлов для обработки: {len(all_images)}")
             if not all_images:
                 st.error("Не найдено ни одного поддерживаемого изображения.")
+                # Создаём пустой архив с логом ошибок
+                result_zip = os.path.join(temp_dir, "result_rename.zip")
+                with zipfile.ZipFile(result_zip, "w") as zipf:
+                    log_path = os.path.join(temp_dir, "log.txt")
+                    with open(log_path, "w", encoding="utf-8") as logf:
+                        logf.write("\n".join(log))
+                    zipf.write(log_path, arcname="log.txt")
+                with open(result_zip, "rb") as f:
+                    st.session_state["result_zip"] = f.read()
+                st.session_state["stats"] = {"total": 0, "renamed": 0, "skipped": 0}
+                st.session_state["log"] = log
             else:
                 exts = SUPPORTED_EXTS
                 renamed = 0
@@ -262,6 +273,11 @@ if mode == "Переименование фото" and uploaded_files:
                             if file.is_file():
                                 arcname = file.relative_to(zip_root)
                                 zipf.write(file, arcname=arcname)
+                        # Добавляем лог всегда
+                        log_path = os.path.join(temp_dir, "log.txt")
+                        with open(log_path, "w", encoding="utf-8") as logf:
+                            logf.write("\n".join(log))
+                        zipf.write(log_path, arcname="log.txt")
                     st.write("Читаю архив в память...")
                     with open(result_zip, "rb") as f:
                         st.session_state["result_zip"] = f.read()
@@ -274,12 +290,30 @@ if mode == "Переименование фото" and uploaded_files:
                     st.write("Готово! Архив сохранён в session_state.")
                 except Exception as e:
                     st.error(f"Ошибка при архивации или чтении архива: {e}")
+                    # Создаём архив только с логом ошибки
+                    result_zip = os.path.join(temp_dir, "result_rename.zip")
+                    with zipfile.ZipFile(result_zip, "w") as zipf:
+                        log.append(f"Ошибка архивации: {e}")
+                        log_path = os.path.join(temp_dir, "log.txt")
+                        with open(log_path, "w", encoding="utf-8") as logf:
+                            logf.write("\n".join(log))
+                        zipf.write(log_path, arcname="log.txt")
+                    with open(result_zip, "rb") as f:
+                        st.session_state["result_zip"] = f.read()
+                    st.session_state["stats"] = {"total": len(all_images), "renamed": renamed, "skipped": skipped}
+                    st.session_state["log"] = log
 
 # ВНЕ блока кнопки: всегда показываем результат, если он есть
 if mode == "Переименование фото" and st.session_state.get("result_zip"):
     st.download_button("Скачать архив", st.session_state["result_zip"], file_name="renamed_photos.zip", mime="application/zip")
     st.write("LOG:", st.session_state.get("log", []))
     st.write("Размер архива:", len(st.session_state["result_zip"]))
+    st.download_button(
+        label="📄 Скачать лог в .txt",
+        data="\n".join(st.session_state["log"]),
+        file_name="log.txt",
+        mime="text/plain"
+    )
 elif mode == "Переименование фото":
     st.write("Архив не создан")
 
@@ -318,6 +352,17 @@ elif mode == "Конвертация в JPG" and uploaded_files:
                     log.append(f"❌ {uploaded.name}: не поддерживается.")
             if not all_images:
                 st.error("Не найдено ни одного поддерживаемого изображения.")
+                # Создаём пустой архив с логом ошибок
+                result_zip = os.path.join(temp_dir, "result_convert.zip")
+                with zipfile.ZipFile(result_zip, "w") as zipf:
+                    log_path = os.path.join(temp_dir, "log.txt")
+                    with open(log_path, "w", encoding="utf-8") as logf:
+                        logf.write("\n".join(log))
+                    zipf.write(log_path, arcname="log.txt")
+                with open(result_zip, "rb") as f:
+                    st.session_state["result_zip"] = f.read()
+                st.session_state["stats"] = {"total": 0, "converted": 0, "errors": 0}
+                st.session_state["log"] = log
             else:
                 converted_files = []
                 errors = 0
@@ -343,6 +388,11 @@ elif mode == "Конвертация в JPG" and uploaded_files:
                     with zipfile.ZipFile(result_zip, "w") as zipf:
                         for src, rel in converted_files:
                             zipf.write(src, arcname=rel)
+                        # Добавляем лог всегда
+                        log_path = os.path.join(temp_dir, "log.txt")
+                        with open(log_path, "w", encoding="utf-8") as logf:
+                            logf.write("\n".join(log))
+                        zipf.write(log_path, arcname="log.txt")
                     with open(result_zip, "rb") as f:
                         st.session_state["result_zip"] = f.read()
                     st.session_state["stats"] = {
@@ -353,6 +403,16 @@ elif mode == "Конвертация в JPG" and uploaded_files:
                     st.session_state["log"] = log
                 else:
                     st.error("Не удалось конвертировать ни одного изображения.")
+                    # Создаём архив только с логом ошибок
+                    result_zip = os.path.join(temp_dir, "result_convert.zip")
+                    with zipfile.ZipFile(result_zip, "w") as zipf:
+                        log_path = os.path.join(temp_dir, "log.txt")
+                        with open(log_path, "w", encoding="utf-8") as logf:
+                            logf.write("\n".join(log))
+                        zipf.write(log_path, arcname="log.txt")
+                    with open(result_zip, "rb") as f:
+                        st.session_state["result_zip"] = f.read()
+                    st.session_state["stats"] = {"total": len(all_images), "converted": 0, "errors": errors}
                     st.session_state["log"] = log
 
 # --- Кнопка обработки для режима Водяной знак ---
@@ -394,6 +454,17 @@ if mode == "Водяной знак":
                 st.write(f"Собрано файлов для обработки: {len(all_images)}")
                 if not all_images:
                     st.error("Не найдено ни одного поддерживаемого изображения.")
+                    # Создаём пустой архив с логом ошибок
+                    result_zip = os.path.join(temp_dir, "result_watermark.zip")
+                    with zipfile.ZipFile(result_zip, "w") as zipf:
+                        log_path = os.path.join(temp_dir, "log.txt")
+                        with open(log_path, "w", encoding="utf-8") as logf:
+                            logf.write("\n".join(log))
+                        zipf.write(log_path, arcname="log.txt")
+                    with open(result_zip, "rb") as f:
+                        st.session_state["result_zip"] = f.read()
+                    st.session_state["stats"] = {"total": 0, "processed": 0, "errors": 0}
+                    st.session_state["log"] = log
                 else:
                     watermark_path = None
                     if preset_choice != "Нет":
@@ -444,6 +515,11 @@ if mode == "Водяной знак":
                                     if file.is_file():
                                         arcname = file.relative_to(zip_root)
                                         zipf.write(file, arcname=arcname)
+                                # Добавляем лог всегда
+                                log_path = os.path.join(temp_dir, "log.txt")
+                                with open(log_path, "w", encoding="utf-8") as logf:
+                                    logf.write("\n".join(log))
+                                zipf.write(log_path, arcname="log.txt")
                             st.write("Читаю архив в память...")
                             with open(result_zip, "rb") as f:
                                 st.session_state["result_zip"] = f.read()
@@ -456,13 +532,56 @@ if mode == "Водяной знак":
                             st.write("Готово! Архив сохранён в session_state.")
                         except Exception as e:
                             st.error(f"Ошибка при архивации или чтении архива: {e}")
+                            # Создаём архив только с логом ошибки
+                            result_zip = os.path.join(temp_dir, "result_watermark.zip")
+                            with zipfile.ZipFile(result_zip, "w") as zipf:
+                                log.append(f"Ошибка архивации: {e}")
+                                log_path = os.path.join(temp_dir, "log.txt")
+                                with open(log_path, "w", encoding="utf-8") as logf:
+                                    logf.write("\n".join(log))
+                                zipf.write(log_path, arcname="log.txt")
+                            with open(result_zip, "rb") as f:
+                                st.session_state["result_zip"] = f.read()
+                            st.session_state["stats"] = {"total": len(all_images), "processed": len(processed_files), "errors": errors}
+                            st.session_state["log"] = log
+                    else:
+                        st.error("Не удалось обработать ни одного изображения.")
+                        # Создаём архив только с логом ошибок
+                        result_zip = os.path.join(temp_dir, "result_watermark.zip")
+                        with zipfile.ZipFile(result_zip, "w") as zipf:
+                            log_path = os.path.join(temp_dir, "log.txt")
+                            with open(log_path, "w", encoding="utf-8") as logf:
+                                logf.write("\n".join(log))
+                            zipf.write(log_path, arcname="log.txt")
+                        with open(result_zip, "rb") as f:
+                            st.session_state["result_zip"] = f.read()
+                        st.session_state["stats"] = {"total": len(all_images), "processed": 0, "errors": errors}
+                        st.session_state["log"] = log
 
 # ВНЕ блока кнопки: всегда показываем результат, если он есть
 if mode == "Водяной знак" and st.session_state.get("result_zip"):
     st.download_button("Скачать архив", st.session_state["result_zip"], file_name="watermarked_images.zip", mime="application/zip")
     st.write("LOG:", st.session_state.get("log", []))
     st.write("Размер архива:", len(st.session_state["result_zip"]))
+    st.download_button(
+        label="📄 Скачать лог в .txt",
+        data="\n".join(st.session_state["log"]),
+        file_name="log.txt",
+        mime="text/plain"
+    )
 elif mode == "Водяной знак":
+    st.write("Архив не создан")
+if mode == "Переименование фото" and st.session_state.get("result_zip"):
+    st.download_button("Скачать архив", st.session_state["result_zip"], file_name="renamed_photos.zip", mime="application/zip")
+    st.write("LOG:", st.session_state.get("log", []))
+    st.write("Размер архива:", len(st.session_state["result_zip"]))
+    st.download_button(
+        label="📄 Скачать лог в .txt",
+        data="\n".join(st.session_state["log"]),
+        file_name="log.txt",
+        mime="text/plain"
+    )
+elif mode == "Переименование фото":
     st.write("Архив не создан")
 
 if st.button("🔄 Начать сначала", type="primary"):
