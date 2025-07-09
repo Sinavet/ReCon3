@@ -78,6 +78,13 @@ uploaded_files = st.file_uploader(
     key=st.session_state["reset_uploader"]
 )
 
+# --- Проверка размера файлов при загрузке ---
+def is_file_too_large(uploaded_file):
+    uploaded_file.seek(0, 2)  # Переместить в конец файла
+    size = uploaded_file.tell()
+    uploaded_file.seek(0)
+    return size > MAX_SIZE_BYTES
+
 # --- UI для режима Водяной знак ---
 if mode == "Водяной знак":
     st.markdown("**Выберите водяной знак (PNG/JPG):**")
@@ -160,7 +167,8 @@ if mode == "Водяной знак":
 
 # --- Кнопка обработки для режима Переименование фото ---
 if mode == "Переименование фото" and uploaded_files:
-    if st.button("Обработать и скачать архив", key="process_rename_btn"):
+    uploaded_files = filter_large_files(uploaded_files)
+    if uploaded_files and st.button("Обработать и скачать архив", key="process_rename_btn"):
         import tempfile
         from pathlib import Path
         st.subheader('Обработка изображений...')
@@ -242,7 +250,8 @@ if mode == "Переименование фото" and uploaded_files:
 
 # --- Кнопка обработки для режима Конвертация в JPG ---
 elif mode == "Конвертация в JPG" and uploaded_files:
-    if st.button("Обработать и скачать архив", key="process_convert_btn"):
+    uploaded_files = filter_large_files(uploaded_files)
+    if uploaded_files and st.button("Обработать и скачать архив", key="process_convert_btn"):
         import tempfile
         from pathlib import Path
         st.subheader('Обработка изображений...')
@@ -313,6 +322,7 @@ elif mode == "Конвертация в JPG" and uploaded_files:
 
 # --- Кнопка обработки для режима Водяной знак ---
 if mode == "Водяной знак":
+    uploaded_files = filter_large_files(uploaded_files)
     if uploaded_files and (preset_choice != "Нет" or user_wm_file):
         if st.button("Обработать и скачать архив", key="process_archive_btn"):
             import tempfile
@@ -373,10 +383,14 @@ if mode == "Водяной знак":
                                 errors += 1
                             progress_bar.progress(i / len(all_images), text=f"Обработано файлов: {i}/{len(all_images)}")
                         if processed_files:
+                            # --- Новый блок: сохраняем структуру папок ---
+                            extracted_items = [p for p in Path(temp_dir).iterdir() if p.name != uploaded_files[0].name]
+                            zip_root = Path(temp_dir)
+                            if len(extracted_items) == 1 and extracted_items[0].is_dir():
+                                zip_root = extracted_items[0]
                             result_zip = os.path.join(temp_dir, "result_watermark.zip")
-                            with zipfile.ZipFile(result_zip, "w") as zipf:
-                                for src, rel in processed_files:
-                                    zipf.write(src, arcname=rel)
+                            import shutil
+                            shutil.make_archive(base_name=result_zip[:-4], format='zip', root_dir=str(zip_root))
                             with open(result_zip, "rb") as f:
                                 st.session_state["result_zip"] = f.read()
                             st.session_state["stats"] = {
@@ -396,15 +410,18 @@ if st.button("🔄 Начать сначала", type="primary"):
     reset_all()
     st.rerun()
 
-MAX_SIZE_MB = 3072
+MAX_SIZE_MB = 400
 MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 
-# Удаляю автоматическую обработку файлов
-# Было:
-# if uploaded_files and not st.session_state["result_zip"]:
-#     ...
-# Теперь обработка только по кнопке ниже
-# (Весь код обработки файлов вне блока с кнопкой удалён)
+# --- Фильтрация файлов по размеру при обработке ---
+def filter_large_files(uploaded_files):
+    filtered = []
+    for f in uploaded_files:
+        if is_file_too_large(f):
+            st.error(f"Файл {f.name} превышает {MAX_SIZE_MB} МБ и не будет обработан.")
+        else:
+            filtered.append(f)
+    return filtered
 
 # --- Кнопка обработки ---
 # Удалён дублирующий вызов:
