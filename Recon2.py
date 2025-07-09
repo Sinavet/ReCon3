@@ -419,12 +419,18 @@ if mode == "Водяной знак":
                                 "errors": errors
                             }
                             st.session_state["log"] = log
+                            st.write("LOG:", log)
+                            st.write("Размер архива:", len(st.session_state["result_zip"]))
                         else:
                             st.error("Не удалось применить водяной знак к ни одному изображению.")
                             st.session_state["log"] = log
+                            st.write("LOG:", log)
+                            st.write("Архив не создан")
                     else:
                         st.warning("Не выбран водяной знак для обработки.")
                         st.session_state["log"] = log
+                        st.write("LOG:", log)
+                        st.write("Архив не создан")
 
 if st.button("🔄 Начать сначала", type="primary"):
     reset_all()
