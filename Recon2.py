@@ -308,15 +308,20 @@ if mode == "Переименование фото" and uploaded_files:
 
 # ВНЕ блока кнопки: всегда показываем результат, если он есть
 if mode == "Переименование фото" and st.session_state.get("result_zip"):
-    st.download_button("Скачать архив", st.session_state["result_zip"], file_name="renamed_photos.zip", mime="application/zip")
-    st.write("LOG:", st.session_state.get("log", []))
-    st.write("Размер архива:", len(st.session_state["result_zip"]))
+    st.download_button(
+        label="📥 Скачать архив",
+        data=st.session_state["result_zip"],
+        file_name="renamed_photos.zip",
+        mime="application/zip"
+    )
     st.download_button(
         label="📄 Скачать лог в .txt",
         data="\n".join(st.session_state["log"]),
         file_name="log.txt",
         mime="text/plain"
     )
+    st.write("LOG:", st.session_state.get("log", []))
+    st.write("Размер архива:", len(st.session_state["result_zip"]))
 elif mode == "Переименование фото":
     st.write("Архив не создан")
 
@@ -566,15 +571,20 @@ if mode == "Водяной знак":
 
 # ВНЕ блока кнопки: всегда показываем результат, если он есть
 if mode == "Водяной знак" and st.session_state.get("result_zip"):
-    st.download_button("Скачать архив", st.session_state["result_zip"], file_name="watermarked_images.zip", mime="application/zip")
-    st.write("LOG:", st.session_state.get("log", []))
-    st.write("Размер архива:", len(st.session_state["result_zip"]))
+    st.download_button(
+        label="📥 Скачать архив",
+        data=st.session_state["result_zip"],
+        file_name="watermarked_images.zip",
+        mime="application/zip"
+    )
     st.download_button(
         label="📄 Скачать лог в .txt",
         data="\n".join(st.session_state["log"]),
         file_name="log.txt",
         mime="text/plain"
     )
+    st.write("LOG:", st.session_state.get("log", []))
+    st.write("Размер архива:", len(st.session_state["result_zip"]))
 elif mode == "Водяной знак":
     st.write("Архив не создан")
 
