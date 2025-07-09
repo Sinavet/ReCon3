@@ -25,7 +25,7 @@ st.title("PhotoFlow: Умная обработка изображений")
 
 with st.expander("ℹ️ Инструкция и ответы на вопросы"):
     st.markdown("""
-    **Как пользоваться бото:**
+    **Как пользоваться ботом:**
     1. Выберите режим работы.
     2. Загрузите изображения или архив.
     3. Дождитесь обработки и скачайте результат.
@@ -375,9 +375,9 @@ if mode == "Водяной знак":
                     elif user_wm_file:
                         watermark_path = user_wm_path
 
+                    processed_files = []
+                    errors = 0
                     if watermark_path:
-                        processed_files = []
-                        errors = 0
                         progress_bar = st.progress(0, text="Файлы...")
                         for i, img_path in enumerate(all_images, 1):
                             rel_path = img_path.relative_to(temp_dir)
@@ -419,18 +419,15 @@ if mode == "Водяной знак":
                                 "errors": errors
                             }
                             st.session_state["log"] = log
-                            st.write("LOG:", log)
-                            st.write("Размер архива:", len(st.session_state["result_zip"]))
-                        else:
-                            st.error("Не удалось применить водяной знак к ни одному изображению.")
-                            st.session_state["log"] = log
-                            st.write("LOG:", log)
-                            st.write("Архив не создан")
                     else:
                         st.warning("Не выбран водяной знак для обработки.")
                         st.session_state["log"] = log
-                        st.write("LOG:", log)
-                        st.write("Архив не создан")
+                # Лог и статус архива выводим всегда
+                st.write("LOG:", log)
+                if "result_zip" in st.session_state and st.session_state["result_zip"]:
+                    st.write("Размер архива:", len(st.session_state["result_zip"]))
+                else:
+                    st.write("Архив не создан")
 
 if st.button("🔄 Начать сначала", type="primary"):
     reset_all()
