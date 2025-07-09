@@ -319,7 +319,6 @@ if mode == "Переименование фото" and st.session_state.get("res
         file_name="log.txt",
         mime="text/plain"
     )
-    st.write("LOG:", st.session_state.get("log", []))
     st.write("Размер архива:", len(st.session_state["result_zip"]))
 elif mode == "Переименование фото":
     st.write("Архив не создан")
@@ -579,7 +578,6 @@ if mode == "Водяной знак" and st.session_state.get("result_zip"):
         file_name="log.txt",
         mime="text/plain"
     )
-    st.write("LOG:", st.session_state.get("log", []))
     st.write("Размер архива:", len(st.session_state["result_zip"]))
 elif mode == "Водяной знак":
     st.write("Архив не создан")
