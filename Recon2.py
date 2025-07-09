@@ -338,6 +338,7 @@ if mode == "Водяной знак":
         if st.button("Обработать и скачать архив", key="process_archive_btn"):
             import tempfile
             from pathlib import Path
+            import time
             st.subheader('Обработка изображений...')
             with tempfile.TemporaryDirectory() as temp_dir:
                 all_images = []
@@ -383,14 +384,22 @@ if mode == "Водяной знак":
                             out_path = os.path.join(temp_dir, str(rel_path.with_suffix('.jpg')))
                             out_dir = os.path.dirname(out_path)
                             os.makedirs(out_dir, exist_ok=True)
+                            start_time = time.time()
                             try:
                                 img = Image.open(img_path)
-                                processed_img = apply_watermark(img, watermark_path=watermark_path, position=pos_map[position], opacity=opacity, scale=size_percent/100.0)
+                                processed_img = apply_watermark(
+                                    img,
+                                    watermark_path=watermark_path,
+                                    position=pos_map[position],
+                                    opacity=opacity,
+                                    scale=size_percent/100.0
+                                )
                                 processed_img.save(out_path, "JPEG", quality=100, optimize=True, progressive=True)
                                 processed_files.append((out_path, rel_path.with_suffix('.jpg')))
-                                log.append(f"✅ {rel_path} → {rel_path.with_suffix('.jpg')}")
+                                log.append(f"✅ {rel_path} → {rel_path.with_suffix('.jpg')} (время: {time.time() - start_time:.2f} сек)")
                             except Exception as e:
-                                log.append(f"❌ {rel_path}: ошибка обработки водяного знака ({e})")
+                                log.append(f"❌ {rel_path}: ошибка обработки водяного знака ({e}) (время: {time.time() - start_time:.2f} сек)")
+                                st.error(f"Ошибка при обработке {rel_path}: {e}")
                                 errors += 1
                             progress_bar.progress(i / len(all_images), text=f"Обработано файлов: {i}/{len(all_images)}")
                         if processed_files:
