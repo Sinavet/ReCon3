@@ -254,18 +254,21 @@ if mode == "Переименование фото" and uploaded_files:
                 if len(extracted_items) == 1 and extracted_items[0].is_dir():
                     zip_root = extracted_items[0]
                 result_zip = os.path.join(temp_dir, "result_rename.zip")
-                import shutil
-                shutil.make_archive(base_name=result_zip[:-4], format='zip', root_dir=str(zip_root))
-                st.write("Читаю архив в память...")
-                with open(result_zip, "rb") as f:
-                    st.session_state["result_zip"] = f.read()
-                st.session_state["stats"] = {
-                    "total": len(all_images),
-                    "renamed": renamed,
-                    "skipped": skipped
-                }
-                st.session_state["log"] = log
-                st.write("Готово! Архив сохранён в session_state.")
+                try:
+                    import shutil
+                    shutil.make_archive(base_name=result_zip[:-4], format='zip', root_dir=str(zip_root))
+                    st.write("Читаю архив в память...")
+                    with open(result_zip, "rb") as f:
+                        st.session_state["result_zip"] = f.read()
+                    st.session_state["stats"] = {
+                        "total": len(all_images),
+                        "renamed": renamed,
+                        "skipped": skipped
+                    }
+                    st.session_state["log"] = log
+                    st.write("Готово! Архив сохранён в session_state.")
+                except Exception as e:
+                    st.error(f"Ошибка при архивации или чтении архива: {e}")
 
 # ВНЕ блока кнопки: всегда показываем результат, если он есть
 if mode == "Переименование фото" and st.session_state.get("result_zip"):
@@ -428,18 +431,21 @@ if mode == "Водяной знак":
                         if len(extracted_items) == 1 and extracted_items[0].is_dir():
                             zip_root = extracted_items[0]
                         result_zip = os.path.join(temp_dir, "result_watermark.zip")
-                        import shutil
-                        shutil.make_archive(base_name=result_zip[:-4], format='zip', root_dir=str(zip_root))
-                        st.write("Читаю архив в память...")
-                        with open(result_zip, "rb") as f:
-                            st.session_state["result_zip"] = f.read()
-                        st.session_state["stats"] = {
-                            "total": len(all_images),
-                            "processed": len(processed_files),
-                            "errors": errors
-                        }
-                        st.session_state["log"] = log
-                        st.write("Готово! Архив сохранён в session_state.")
+                        try:
+                            import shutil
+                            shutil.make_archive(base_name=result_zip[:-4], format='zip', root_dir=str(zip_root))
+                            st.write("Читаю архив в память...")
+                            with open(result_zip, "rb") as f:
+                                st.session_state["result_zip"] = f.read()
+                            st.session_state["stats"] = {
+                                "total": len(all_images),
+                                "processed": len(processed_files),
+                                "errors": errors
+                            }
+                            st.session_state["log"] = log
+                            st.write("Готово! Архив сохранён в session_state.")
+                        except Exception as e:
+                            st.error(f"Ошибка при архивации или чтении архива: {e}")
 
 # ВНЕ блока кнопки: всегда показываем результат, если он есть
 if mode == "Водяной знак" and st.session_state.get("result_zip"):
