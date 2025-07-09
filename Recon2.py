@@ -213,7 +213,6 @@ if mode == "Переименование фото" and uploaded_files:
                     log.append(f"🖼️ Файл {uploaded.name}: добавлен.")
                 else:
                     log.append(f"❌ {uploaded.name}: не поддерживается.")
-            st.write(f"Собрано файлов для обработки: {len(all_images)}")
             if not all_images:
                 st.error("Не найдено ни одного поддерживаемого изображения.")
                 # Создаём пустой архив с логом ошибок
@@ -235,13 +234,11 @@ if mode == "Переименование фото" and uploaded_files:
                 if len(folders) > 0:
                     progress_bar = st.progress(0, text="Папки...")
                     for i, folder in enumerate(folders, 1):
-                        st.write(f"Обрабатываю папку {i}/{len(folders)}: {folder}")
                         photos = [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in exts]
                         photos_sorted = sorted(photos, key=lambda x: x.name)
                         relative_folder_path = folder.relative_to(temp_dir)
                         if len(photos_sorted) > 0:
                             for idx, photo in enumerate(photos_sorted, 1):
-                                st.write(f"Переименовываю файл {photo}")
                                 new_name = f"{idx}{photo.suffix.lower()}"
                                 new_path = photo.parent / new_name
                                 relative_photo_path = photo.relative_to(temp_dir)
@@ -269,7 +266,6 @@ if mode == "Переименование фото" and uploaded_files:
                     if file.is_file():
                         if file.suffix.lower() in SUPPORTED_EXTS or file.name == "log.txt":
                             files_to_zip.append(file)
-                st.write(f"Файлы для архивации: {[str(f) for f in files_to_zip]}")
                 try:
                     result_zip = os.path.join(temp_dir, "result_rename.zip")
                     with zipfile.ZipFile(result_zip, "w") as zipf:
@@ -455,7 +451,6 @@ if mode == "Водяной знак":
                         log.append(f"🖼️ Файл {uploaded.name}: добавлен.")
                     else:
                         log.append(f"❌ {uploaded.name}: не поддерживается.")
-                st.write(f"Собрано файлов для обработки: {len(all_images)}")
                 if not all_images:
                     st.error("Не найдено ни одного поддерживаемого изображения.")
                     # Создаём пустой архив с логом ошибок
