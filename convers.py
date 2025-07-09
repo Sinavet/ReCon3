@@ -103,6 +103,25 @@ def process_convert_mode(uploaded_files):
                     st.session_state["stats"] = {"total": len(all_images), "converted": 0, "errors": errors}
                     st.session_state["log"] = log
 
+    if st.session_state.get("result_zip"):
+        st.download_button(
+            label="📥 Скачать архив",
+            data=st.session_state["result_zip"],
+            file_name="converted_images.zip",
+            mime="application/zip"
+        )
+        st.download_button(
+            label="📄 Скачать лог в .txt",
+            data="\n".join(st.session_state["log"]),
+            file_name="log.txt",
+            mime="text/plain"
+        )
+        with st.expander("Показать лог обработки"):
+            st.text_area("Лог:", value="\n".join(st.session_state["log"]), height=300, disabled=True)
+    else:
+        st.write("Архив не создан")
+
+
 # Фильтр больших файлов (оставить для совместимости)
 def filter_large_files(uploaded_files):
     MAX_SIZE_MB = 400
