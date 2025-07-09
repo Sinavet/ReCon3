@@ -221,28 +221,30 @@ if mode == "Переименование фото" and uploaded_files:
                 renamed = 0
                 skipped = 0
                 folders = sorted({img.parent for img in all_images})
-                progress_bar = st.progress(0, text="Папки...")
-                for i, folder in enumerate(folders, 1):
-                    photos = [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in exts]
-                    photos_sorted = sorted(photos, key=lambda x: x.name)
-                    relative_folder_path = folder.relative_to(temp_dir)
-                    if len(photos_sorted) > 0:
-                        for idx, photo in enumerate(photos_sorted, 1):
-                            new_name = f"{idx}{photo.suffix.lower()}"
-                            new_path = photo.parent / new_name
-                            relative_photo_path = photo.relative_to(temp_dir)
-                            relative_new_path = new_path.relative_to(temp_dir)
-                            if new_path.exists() and new_path != photo:
-                                log.append(f"Пропущено: Файл '{relative_new_path}' уже существует.")
-                                skipped += 1
-                            else:
-                                photo.rename(new_path)
-                                log.append(f"Переименовано: '{relative_photo_path}' -> '{relative_new_path}'")
-                                renamed += 1
-                    else:
-                        log.append(f"Инфо: В папке '{relative_folder_path}' нет фото.")
-                        skipped += 1
-                    progress_bar.progress((i + 1) / len(folders), text=f"Обработано папок: {i + 1}/{len(folders)}")
+                if len(folders) > 0:
+                    progress_bar = st.progress(0, text="Папки...")
+                    for i, folder in enumerate(folders, 1):
+                        photos = [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in exts]
+                        photos_sorted = sorted(photos, key=lambda x: x.name)
+                        relative_folder_path = folder.relative_to(temp_dir)
+                        if len(photos_sorted) > 0:
+                            for idx, photo in enumerate(photos_sorted, 1):
+                                new_name = f"{idx}{photo.suffix.lower()}"
+                                new_path = photo.parent / new_name
+                                relative_photo_path = photo.relative_to(temp_dir)
+                                relative_new_path = new_path.relative_to(temp_dir)
+                                if new_path.exists() and new_path != photo:
+                                    log.append(f"Пропущено: Файл '{relative_new_path}' уже существует.")
+                                    skipped += 1
+                                else:
+                                    photo.rename(new_path)
+                                    log.append(f"Переименовано: '{relative_photo_path}' -> '{relative_new_path}'")
+                                    renamed += 1
+                        else:
+                            log.append(f"Инфо: В папке '{relative_folder_path}' нет фото.")
+                            skipped += 1
+                        progress = min(i / len(folders), 1.0)
+                        progress_bar.progress(progress, text=f"Обработано папок: {i}/{len(folders)}")
                 extracted_items = [p for p in Path(temp_dir).iterdir() if p.name != uploaded_files[0].name]
                 zip_root = Path(temp_dir)
                 if len(extracted_items) == 1 and extracted_items[0].is_dir():
