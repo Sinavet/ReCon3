@@ -261,6 +261,14 @@ if mode == "Переименование фото" and uploaded_files:
                 }
                 st.session_state["log"] = log
 
+# ВНЕ блока кнопки: всегда показываем результат, если он есть
+if mode == "Переименование фото" and st.session_state.get("result_zip"):
+    st.download_button("Скачать архив", st.session_state["result_zip"], file_name="renamed_photos.zip", mime="application/zip")
+    st.write("LOG:", st.session_state.get("log", []))
+    st.write("Размер архива:", len(st.session_state["result_zip"]))
+elif mode == "Переименование фото":
+    st.write("Архив не создан")
+
 # --- Кнопка обработки для режима Конвертация в JPG ---
 elif mode == "Конвертация в JPG" and uploaded_files:
     uploaded_files = filter_large_files(uploaded_files)
