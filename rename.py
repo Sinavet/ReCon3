@@ -15,6 +15,7 @@ def process_rename_mode(uploaded_files):
         with tempfile.TemporaryDirectory() as temp_dir:
             all_images = []
             log = []
+            st.write("[DEBUG] Старт process_rename_mode")
             # --- Сбор всех файлов ---
             for uploaded in uploaded_files:
                 if uploaded.name.lower().endswith(".zip"):
@@ -42,6 +43,7 @@ def process_rename_mode(uploaded_files):
                     log.append(f"🖼️ Файл {uploaded.name}: добавлен.")
                 else:
                     log.append(f"❌ {uploaded.name}: не поддерживается.")
+            st.write(f"[DEBUG] Всего файлов для обработки: {len(all_images)}")
             if not all_images:
                 st.error("Не найдено ни одного поддерживаемого изображения.")
                 # Создаём пустой архив с логом ошибок
@@ -90,6 +92,8 @@ def process_rename_mode(uploaded_files):
                 if len(extracted_items) == 1 and extracted_items[0].is_dir():
                     zip_root = extracted_items[0]
                 files_to_zip = [file for file in Path(zip_root).rglob("*") if file.is_file() and file.suffix.lower() in exts or file.name == "log.txt"]
+                st.write("[DEBUG] Начинаю архивацию результата...")
+                st.write(f"[DEBUG] files_to_zip: {[str(f) for f in files_to_zip]}")
                 log_path = os.path.join(temp_dir, "log.txt")
                 if os.path.exists(log_path):
                     files_to_zip.append(Path(log_path))
@@ -101,6 +105,7 @@ def process_rename_mode(uploaded_files):
                             zipf.write(file, arcname=arcname)
                         if os.path.exists(log_path):
                             zipf.write(log_path, arcname="log.txt")
+                    st.write("[DEBUG] Архивация завершена, архив сохранён в session_state")
                     with open(result_zip, "rb") as f:
                         st.session_state["result_zip"] = f.read()
                     st.session_state["stats"] = {
@@ -111,6 +116,7 @@ def process_rename_mode(uploaded_files):
                     st.session_state["log"] = log
                 except Exception as e:
                     st.error(f"Ошибка при архивации или чтении архива: {e}")
+                    st.write(f"[DEBUG] Ошибка архивации: {e}")
                     result_zip = os.path.join(temp_dir, "result_rename.zip")
                     with zipfile.ZipFile(result_zip, "w") as zipf:
                         log.append(f"Ошибка архивации: {e}")
