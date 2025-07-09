@@ -187,12 +187,16 @@ elif mode == "Конвертация в JPG":
 elif mode == "Водяной знак":
     process_watermark_mode(uploaded_files, preset_choice, user_wm_file, user_wm_path, watermark_dir, pos_map, opacity, size_percent, position)
 
-# ВНЕ блока кнопки: всегда показываем результат, если он есть
-if mode == "Водяной знак" and st.session_state.get("result_zip"):
+# Универсальный блок скачивания архива и лога для всех режимов
+if st.session_state.get("result_zip"):
     st.download_button(
         label="📥 Скачать архив",
         data=st.session_state["result_zip"],
-        file_name="watermarked_images.zip",
+        file_name=(
+            "renamed_photos.zip" if mode == "Переименование фото"
+            else "converted_photos.zip" if mode == "Конвертация в JPG"
+            else "watermarked_images.zip"
+        ),
         mime="application/zip"
     )
     st.download_button(
@@ -201,7 +205,10 @@ if mode == "Водяной знак" and st.session_state.get("result_zip"):
         file_name="log.txt",
         mime="text/plain"
     )
-elif mode == "Водяной знак":
+    if mode == "Переименование фото":
+        with st.expander("Показать лог обработки"):
+            st.text_area("Лог:", value="\n".join(st.session_state["log"]), height=300, disabled=True)
+else:
     st.write("Архив не создан")
 
 if st.button("🔄 Начать сначала", type="primary"):
