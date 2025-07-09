@@ -188,7 +188,6 @@ if mode == "Переименование фото" and uploaded_files:
             log = []
             # --- Сбор всех файлов ---
             for uploaded in uploaded_files:
-                st.write(f"Рассматриваю файл: {uploaded.name}")
                 if uploaded.name.lower().endswith(".zip"):
                     zip_temp = os.path.join(temp_dir, uploaded.name)
                     with open(zip_temp, "wb") as f:
@@ -437,7 +436,6 @@ if mode == "Водяной знак":
                 log = []
                 # --- Сбор всех файлов ---
                 for uploaded in uploaded_files:
-                    st.write(f"Рассматриваю файл: {uploaded.name}")
                     if uploaded.name.lower().endswith(".zip"):
                         zip_temp = os.path.join(temp_dir, uploaded.name)
                         with open(zip_temp, "wb") as f:
@@ -485,7 +483,6 @@ if mode == "Водяной знак":
                     if watermark_path:
                         progress_bar = st.progress(0, text="Файлы...")
                         for i, img_path in enumerate(all_images, 1):
-                            st.write(f"Обрабатываю файл {i}/{len(all_images)}: {img_path}")
                             rel_path = img_path.relative_to(temp_dir)
                             out_path = os.path.join(temp_dir, str(rel_path.with_suffix('.jpg')))
                             out_dir = os.path.dirname(out_path)
@@ -503,7 +500,6 @@ if mode == "Водяной знак":
                                 processed_img.save(out_path, "JPEG", quality=100, optimize=True, progressive=True)
                                 processed_files.append((out_path, rel_path.with_suffix('.jpg')))
                                 log.append(f"✅ {rel_path} → {rel_path.with_suffix('.jpg')} (время: {time.time() - start_time:.2f} сек)")
-                                st.write(f"Готово: {img_path}")
                             except Exception as e:
                                 log.append(f"❌ {rel_path}: ошибка обработки водяного знака ({e}) (время: {time.time() - start_time:.2f} сек)")
                                 st.error(f"Ошибка при обработке {rel_path}: {e}")
