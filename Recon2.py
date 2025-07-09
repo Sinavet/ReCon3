@@ -222,7 +222,7 @@ if mode == "Переименование фото" and uploaded_files:
                 skipped = 0
                 folders = sorted({img.parent for img in all_images})
                 progress_bar = st.progress(0, text="Папки...")
-                for i, folder in enumerate(folders):
+                for i, folder in enumerate(folders, 1):
                     photos = [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in exts]
                     photos_sorted = sorted(photos, key=lambda x: x.name)
                     relative_folder_path = folder.relative_to(temp_dir)
@@ -422,12 +422,14 @@ if mode == "Водяной знак":
                     else:
                         st.warning("Не выбран водяной знак для обработки.")
                         st.session_state["log"] = log
-                # Лог и статус архива выводим всегда
-                st.write("LOG:", log)
-                if "result_zip" in st.session_state and st.session_state["result_zip"]:
-                    st.write("Размер архива:", len(st.session_state["result_zip"]))
-                else:
-                    st.write("Архив не создан")
+
+# ВНЕ блока кнопки: всегда показываем результат, если он есть
+if mode == "Водяной знак" and st.session_state.get("result_zip"):
+    st.download_button("Скачать архив", st.session_state["result_zip"], file_name="watermarked_images.zip", mime="application/zip")
+    st.write("LOG:", st.session_state.get("log", []))
+    st.write("Размер архива:", len(st.session_state["result_zip"]))
+elif mode == "Водяной знак":
+    st.write("Архив не создан")
 
 if st.button("🔄 Начать сначала", type="primary"):
     reset_all()
