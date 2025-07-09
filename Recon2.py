@@ -188,11 +188,11 @@ if mode == "Переименование фото" and uploaded_files:
             log = []
             # --- Сбор всех файлов ---
             for uploaded in uploaded_files:
+                st.write(f"Рассматриваю файл: {uploaded.name}")
                 if uploaded.name.lower().endswith(".zip"):
                     zip_temp = os.path.join(temp_dir, uploaded.name)
                     with open(zip_temp, "wb") as f:
                         f.write(uploaded.read())
-                    # --- Распаковка архива с пофайловой обработкой ошибок ---
                     try:
                         with zipfile.ZipFile(zip_temp, "r") as zip_ref:
                             for member in zip_ref.namelist():
@@ -214,6 +214,7 @@ if mode == "Переименование фото" and uploaded_files:
                     log.append(f"🖼️ Файл {uploaded.name}: добавлен.")
                 else:
                     log.append(f"❌ {uploaded.name}: не поддерживается.")
+            st.write(f"Собрано файлов для обработки: {len(all_images)}")
             if not all_images:
                 st.error("Не найдено ни одного поддерживаемого изображения.")
             else:
@@ -224,11 +225,13 @@ if mode == "Переименование фото" and uploaded_files:
                 if len(folders) > 0:
                     progress_bar = st.progress(0, text="Папки...")
                     for i, folder in enumerate(folders, 1):
+                        st.write(f"Обрабатываю папку {i}/{len(folders)}: {folder}")
                         photos = [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in exts]
                         photos_sorted = sorted(photos, key=lambda x: x.name)
                         relative_folder_path = folder.relative_to(temp_dir)
                         if len(photos_sorted) > 0:
                             for idx, photo in enumerate(photos_sorted, 1):
+                                st.write(f"Переименовываю файл {photo}")
                                 new_name = f"{idx}{photo.suffix.lower()}"
                                 new_path = photo.parent / new_name
                                 relative_photo_path = photo.relative_to(temp_dir)
@@ -245,6 +248,7 @@ if mode == "Переименование фото" and uploaded_files:
                             skipped += 1
                         progress = min(i / len(folders), 1.0)
                         progress_bar.progress(progress, text=f"Обработано папок: {i}/{len(folders)}")
+                st.write("Архивирую результат...")
                 extracted_items = [p for p in Path(temp_dir).iterdir() if p.name != uploaded_files[0].name]
                 zip_root = Path(temp_dir)
                 if len(extracted_items) == 1 and extracted_items[0].is_dir():
@@ -252,6 +256,7 @@ if mode == "Переименование фото" and uploaded_files:
                 result_zip = os.path.join(temp_dir, "result_rename.zip")
                 import shutil
                 shutil.make_archive(base_name=result_zip[:-4], format='zip', root_dir=str(zip_root))
+                st.write("Читаю архив в память...")
                 with open(result_zip, "rb") as f:
                     st.session_state["result_zip"] = f.read()
                 st.session_state["stats"] = {
@@ -260,6 +265,7 @@ if mode == "Переименование фото" and uploaded_files:
                     "skipped": skipped
                 }
                 st.session_state["log"] = log
+                st.write("Готово! Архив сохранён в session_state.")
 
 # ВНЕ блока кнопки: всегда показываем результат, если он есть
 if mode == "Переименование фото" and st.session_state.get("result_zip"):
@@ -355,6 +361,7 @@ if mode == "Водяной знак":
                 log = []
                 # --- Сбор всех файлов ---
                 for uploaded in uploaded_files:
+                    st.write(f"Рассматриваю файл: {uploaded.name}")
                     if uploaded.name.lower().endswith(".zip"):
                         zip_temp = os.path.join(temp_dir, uploaded.name)
                         with open(zip_temp, "wb") as f:
@@ -376,6 +383,7 @@ if mode == "Водяной знак":
                         log.append(f"🖼️ Файл {uploaded.name}: добавлен.")
                     else:
                         log.append(f"❌ {uploaded.name}: не поддерживается.")
+                st.write(f"Собрано файлов для обработки: {len(all_images)}")
                 if not all_images:
                     st.error("Не найдено ни одного поддерживаемого изображения.")
                 else:
@@ -390,6 +398,7 @@ if mode == "Водяной знак":
                     if watermark_path:
                         progress_bar = st.progress(0, text="Файлы...")
                         for i, img_path in enumerate(all_images, 1):
+                            st.write(f"Обрабатываю файл {i}/{len(all_images)}: {img_path}")
                             rel_path = img_path.relative_to(temp_dir)
                             out_path = os.path.join(temp_dir, str(rel_path.with_suffix('.jpg')))
                             out_dir = os.path.dirname(out_path)
@@ -407,31 +416,30 @@ if mode == "Водяной знак":
                                 processed_img.save(out_path, "JPEG", quality=100, optimize=True, progressive=True)
                                 processed_files.append((out_path, rel_path.with_suffix('.jpg')))
                                 log.append(f"✅ {rel_path} → {rel_path.with_suffix('.jpg')} (время: {time.time() - start_time:.2f} сек)")
+                                st.write(f"Готово: {img_path}")
                             except Exception as e:
                                 log.append(f"❌ {rel_path}: ошибка обработки водяного знака ({e}) (время: {time.time() - start_time:.2f} сек)")
                                 st.error(f"Ошибка при обработке {rel_path}: {e}")
                                 errors += 1
                             progress_bar.progress(i / len(all_images), text=f"Обработано файлов: {i}/{len(all_images)}")
-                        if processed_files:
-                            # --- Новый блок: сохраняем структуру папок ---
-                            extracted_items = [p for p in Path(temp_dir).iterdir() if p.name != uploaded_files[0].name]
-                            zip_root = Path(temp_dir)
-                            if len(extracted_items) == 1 and extracted_items[0].is_dir():
-                                zip_root = extracted_items[0]
-                            result_zip = os.path.join(temp_dir, "result_watermark.zip")
-                            import shutil
-                            shutil.make_archive(base_name=result_zip[:-4], format='zip', root_dir=str(zip_root))
-                            with open(result_zip, "rb") as f:
-                                st.session_state["result_zip"] = f.read()
-                            st.session_state["stats"] = {
-                                "total": len(all_images),
-                                "processed": len(processed_files),
-                                "errors": errors
-                            }
-                            st.session_state["log"] = log
-                    else:
-                        st.warning("Не выбран водяной знак для обработки.")
+                        st.write("Архивирую результат...")
+                        extracted_items = [p for p in Path(temp_dir).iterdir() if p.name != uploaded_files[0].name]
+                        zip_root = Path(temp_dir)
+                        if len(extracted_items) == 1 and extracted_items[0].is_dir():
+                            zip_root = extracted_items[0]
+                        result_zip = os.path.join(temp_dir, "result_watermark.zip")
+                        import shutil
+                        shutil.make_archive(base_name=result_zip[:-4], format='zip', root_dir=str(zip_root))
+                        st.write("Читаю архив в память...")
+                        with open(result_zip, "rb") as f:
+                            st.session_state["result_zip"] = f.read()
+                        st.session_state["stats"] = {
+                            "total": len(all_images),
+                            "processed": len(processed_files),
+                            "errors": errors
+                        }
                         st.session_state["log"] = log
+                        st.write("Готово! Архив сохранён в session_state.")
 
 # ВНЕ блока кнопки: всегда показываем результат, если он есть
 if mode == "Водяной знак" and st.session_state.get("result_zip"):
