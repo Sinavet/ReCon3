@@ -315,6 +315,8 @@ if mode == "Переименование фото" and st.session_state.get("res
         file_name="log.txt",
         mime="text/plain"
     )
+    with st.expander("Показать лог обработки"):
+        st.text_area("Лог:", value="\n".join(st.session_state["log"]), height=300, disabled=True)
 elif mode == "Переименование фото":
     st.write("Архив не создан")
 
