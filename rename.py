@@ -129,24 +129,6 @@ def process_rename_mode(uploaded_files):
                     st.session_state["stats"] = {"total": len(all_images), "renamed": renamed, "skipped": skipped}
                     st.session_state["log"] = log
 
-if st.session_state.get("result_zip"):
-    st.download_button(
-        label="📥 Скачать архив",
-        data=st.session_state["result_zip"],
-        file_name="renamed_photos.zip",
-        mime="application/zip"
-    )
-    st.download_button(
-        label="📄 Скачать лог в .txt",
-        data="\n".join(st.session_state["log"]),
-        file_name="log.txt",
-        mime="text/plain"
-    )
-    with st.expander("Показать лог обработки"):
-        st.text_area("Лог:", value="\n".join(st.session_state["log"]), height=300, disabled=True)
-else:
-    st.write("Архив не создан")
-
 # Фильтр больших файлов (оставить для совместимости)
 def filter_large_files(uploaded_files):
     MAX_SIZE_MB = 400
