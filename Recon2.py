@@ -504,21 +504,15 @@ if mode == "Водяной знак":
                                 errors += 1
                             progress_bar.progress(i / len(all_images), text=f"Обработано файлов: {i}/{len(all_images)}")
                         st.write("Архивирую результат...")
-                        extracted_items = [p for p in Path(temp_dir).iterdir() if p.name != uploaded_files[0].name]
-                        zip_root = Path(temp_dir)
-                        if len(extracted_items) == 1 and extracted_items[0].is_dir():
-                            zip_root = extracted_items[0]
-                        # --- Новый фильтр: исключаем исходные zip и result_*.zip ---
+                        # Исправить формирование files_to_zip:
                         files_to_zip = [Path(out_path) for out_path, _ in processed_files]
-                        log_path = os.path.join(temp_dir, "log.txt")
-                        if os.path.exists(log_path):
-                            files_to_zip.append(Path(log_path))
+                        # (log_path добавлять только если действительно нужен лог)
                         st.write(f"Файлы для архивации: {[str(f) for f in files_to_zip]}")
                         try:
                             result_zip = os.path.join(temp_dir, "result_watermark.zip")
                             with zipfile.ZipFile(result_zip, "w") as zipf:
                                 for file in files_to_zip:
-                                    arcname = file.relative_to(zip_root)
+                                    arcname = file.relative_to(Path(temp_dir)) # Adjust relative path for zip
                                     zipf.write(file, arcname=arcname)
                                 # Добавляем лог всегда
                                 log_path = os.path.join(temp_dir, "log.txt")
