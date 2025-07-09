@@ -319,7 +319,6 @@ if mode == "Переименование фото" and st.session_state.get("res
         file_name="log.txt",
         mime="text/plain"
     )
-    st.write("Размер архива:", len(st.session_state["result_zip"]))
 elif mode == "Переименование фото":
     st.write("Архив не создан")
 
@@ -510,11 +509,10 @@ if mode == "Водяной знак":
                         if len(extracted_items) == 1 and extracted_items[0].is_dir():
                             zip_root = extracted_items[0]
                         # --- Новый фильтр: исключаем исходные zip и result_*.zip ---
-                        files_to_zip = []
-                        for file in Path(zip_root).rglob("*"):
-                            if file.is_file():
-                                if file.suffix.lower() in SUPPORTED_EXTS or file.name == "log.txt":
-                                    files_to_zip.append(file)
+                        files_to_zip = [Path(out_path) for out_path, _ in processed_files]
+                        log_path = os.path.join(temp_dir, "log.txt")
+                        if os.path.exists(log_path):
+                            files_to_zip.append(Path(log_path))
                         st.write(f"Файлы для архивации: {[str(f) for f in files_to_zip]}")
                         try:
                             result_zip = os.path.join(temp_dir, "result_watermark.zip")
@@ -578,7 +576,6 @@ if mode == "Водяной знак" and st.session_state.get("result_zip"):
         file_name="log.txt",
         mime="text/plain"
     )
-    st.write("Размер архива:", len(st.session_state["result_zip"]))
 elif mode == "Водяной знак":
     st.write("Архив не создан")
 
