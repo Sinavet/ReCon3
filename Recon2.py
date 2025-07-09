@@ -78,12 +78,23 @@ uploaded_files = st.file_uploader(
     key=st.session_state["reset_uploader"]
 )
 
-# --- Проверка размера файлов при загрузке ---
+MAX_SIZE_MB = 400
+MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
+
 def is_file_too_large(uploaded_file):
     uploaded_file.seek(0, 2)  # Переместить в конец файла
     size = uploaded_file.tell()
     uploaded_file.seek(0)
     return size > MAX_SIZE_BYTES
+
+def filter_large_files(uploaded_files):
+    filtered = []
+    for f in uploaded_files:
+        if is_file_too_large(f):
+            st.error(f"Файл {f.name} превышает {MAX_SIZE_MB} МБ и не будет обработан.")
+        else:
+            filtered.append(f)
+    return filtered
 
 # --- UI для режима Водяной знак ---
 if mode == "Водяной знак":
@@ -409,19 +420,6 @@ if mode == "Водяной знак":
 if st.button("🔄 Начать сначала", type="primary"):
     reset_all()
     st.rerun()
-
-MAX_SIZE_MB = 400
-MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
-
-# --- Фильтрация файлов по размеру при обработке ---
-def filter_large_files(uploaded_files):
-    filtered = []
-    for f in uploaded_files:
-        if is_file_too_large(f):
-            st.error(f"Файл {f.name} превышает {MAX_SIZE_MB} МБ и не будет обработан.")
-        else:
-            filtered.append(f)
-    return filtered
 
 # --- Кнопка обработки ---
 # Удалён дублирующий вызов:
